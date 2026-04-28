@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="testRunner" value="CHOOSE_PER_TEST" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/core/common" />
+            <option value="$PROJECT_DIR$/core/feature" />
+            <option value="$PROJECT_DIR$/core/network" />
+            <option value="$PROJECT_DIR$/feature" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_available_riders" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_available_riders/data" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_available_riders/domain" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_available_riders/ui" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_options" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_options/data" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_options/domain" />
+            <option value="$PROJECT_DIR$/feature/taxi_travel_options/ui" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>

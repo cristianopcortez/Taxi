@@ -1,0 +1,309 @@
+{
+  "origin": {
+    "latitude": -23.566114499999998,
+    "longitude": -46.675793399999996
+  },
+  "destination": {
+    "latitude": -23.5615351,
+    "longitude": -46.6562816
+  },
+  "distance": 2990,
+  "duration": 634,
+  "options": [
+    {
+      "id": 1,
+      "name": "Homer Simpson",
+      "description": "Olá! Sou o Homer, seu motorista camarada! Relaxe e aproveite o passeio, com direito a rosquinhas e boas risadas (e talvez alguns desvios).",
+      "vehicle": "Plymouth Valiant 1973 rosa e enferrujado",
+      "review": {
+        "rating": 2,
+        "comment": "Motorista simpático, mas errou o caminho 3 vezes. O carro cheira a donuts."
+      },
+      "value": 7.48
+    }
+  ],
+  "routeResponse": {
+    "routes": [
+      {
+        "distanceMeters": 2990,
+        "duration": "634s",
+        "staticDuration": "634s",
+        "polyline": {
+          "encodedPolyline": "dwynCtj{{GdCwDjCwC^_@PSHKV[^_@bAeALKVYlBqBz@aAr@y@`@a@pB{B|@_ALODCXY@O@M?QIa@RcDJuAc@Ce@EOCIAEAKCICGCGEECIEGECCQOqBsBqBwBo@m@CEIKq@m@mAeAIGa@e@GGGEa@a@oD_Ew@w@i@k@s@s@s@u@qAuAQQCAMOg@g@oCmCKM]_@MMKKCCEGSSUUY[OS]]KKq@u@OOY[YUc@g@AAOMQSCCc@g@CCGGYY[]i@i@_@a@k@i@Y_@DGb@k@T[V]dAsAb@e@FGjAmA@CjBwBo@q@CCo@q@k@o@ECSUGGKKm@t@CDIHUXCD"
+        },
+        "legs": [
+          {
+            "distanceMeters": 2990,
+            "duration": "634s",
+            "staticDuration": "634s",
+            "polyline": {
+              "encodedPolyline": "dwynCtj{{GdCwDjCwC^_@PSHKV[^_@bAeALKVYlBqBz@aAr@y@`@a@pB{B|@_ALODCXY@O@M?QIa@RcDJuAc@Ce@EOCIAEAKCICGCGEECIEGECCQOqBsBqBwBo@m@CEIKq@m@mAeAIGa@e@GGGEa@a@oD_Ew@w@i@k@s@s@s@u@qAuAQQCAMOg@g@oCmCKM]_@MMKKCCEGSSUUY[OS]]KKq@u@OOY[YUc@g@AAOMQSCCc@g@CCGGYY[]i@i@_@a@k@i@Y_@DGb@k@T[V]dAsAb@e@FGjAmA@CjBwBo@q@CCo@q@k@o@ECSUGGKKm@t@CDIHUXCD"
+            },
+            "startLocation": {
+              "latLng": {
+                "latitude": -23.566114499999998,
+                "longitude": -46.675793399999996
+              }
+            },
+            "endLocation": {
+              "latLng": {
+                "latitude": -23.5615351,
+                "longitude": -46.6562816
+              }
+            },
+            "steps": [
+              {
+                "distanceMeters": 771,
+                "staticDuration": "128s",
+                "polyline": {
+                  "encodedPolyline": "dwynCtj{{GdCwDjCwC^_@PSHKV[^_@bAeALKVYlBqBz@aAr@y@`@a@pB{B|@_ALODCXY"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.566114499999998,
+                    "longitude": -46.675793399999996
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.570975999999998,
+                    "longitude": -46.6704163
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "DEPART",
+                  "instructions": "Siga para sudeste na Av. Brasil em direção a R. Guadelupe\nEncerrada Domingos entre as 07:00 – 16:00"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "0,8 km"
+                  },
+                  "staticDuration": {
+                    "text": "2 minutos"
+                  }
+                },
+                "travelMode": "DRIVE"
+              },
+              {
+                "distanceMeters": 171,
+                "staticDuration": "40s",
+                "polyline": {
+                  "encodedPolyline": "ruznCbiz{G@O@M?QIa@RcDJuA"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.570975999999998,
+                    "longitude": -46.6704163
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.5711123,
+                    "longitude": -46.6687589
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "TURN_LEFT",
+                  "instructions": "Vire à esquerda em direção a R. Bolívia"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "0,2 km"
+                  },
+                  "staticDuration": {
+                    "text": "1 min"
+                  }
+                },
+                "travelMode": "DRIVE"
+              },
+              {
+                "distanceMeters": 373,
+                "staticDuration": "63s",
+                "polyline": {
+                  "encodedPolyline": "lvznCv~y{Gc@Ce@EOCIAEAKCICGCGEECIEGECCQOqBsBqBwBo@m@CEIKq@m@"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.5711123,
+                    "longitude": -46.6687589
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.5684594,
+                    "longitude": -46.6666731
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "TURN_LEFT",
+                  "instructions": "Vire à esquerda em direção a R. Argentina"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "0,4 km"
+                  },
+                  "staticDuration": {
+                    "text": "1 min"
+                  }
+                },
+                "travelMode": "DRIVE"
+              },
+              {
+                "distanceMeters": 1145,
+                "staticDuration": "253s",
+                "polyline": {
+                  "encodedPolyline": "zeznCtqy{GmAeAIGa@e@GGGEa@a@oD_Ew@w@i@k@s@s@s@u@qAuAQQCAMOg@g@oCmCKM]_@MMKKCCEGSSUUY[OS]]KKq@u@OOY[YUc@g@AAOMQSCCc@g@CCGGYY[]i@i@_@a@k@i@Y_@"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.5684594,
+                    "longitude": -46.6666731
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.560975499999998,
+                    "longitude": -46.658971699999995
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "NAME_CHANGE",
+                  "instructions": "Continue até Alameda Min. Rocha Azevedo\nPasse pela farmácia (à direita)"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "1,1 km"
+                  },
+                  "staticDuration": {
+                    "text": "4 minutos"
+                  }
+                },
+                "travelMode": "DRIVE"
+              },
+              {
+                "distanceMeters": 313,
+                "staticDuration": "69s",
+                "polyline": {
+                  "encodedPolyline": "bwxnCpax{GDGb@k@T[V]dAsAb@e@FGjAmA@CjBwB"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.560975499999998,
+                    "longitude": -46.658971699999995
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.562922399999998,
+                    "longitude": -46.656760399999996
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "TURN_RIGHT",
+                  "instructions": "Vire à direita em direção a Alameda Santos"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "0,3 km"
+                  },
+                  "staticDuration": {
+                    "text": "1 min"
+                  }
+                },
+                "travelMode": "DRIVE"
+              },
+              {
+                "distanceMeters": 131,
+                "staticDuration": "52s",
+                "polyline": {
+                  "encodedPolyline": "fcynCvsw{Go@q@CCo@q@k@o@ECSU"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.562922399999998,
+                    "longitude": -46.656760399999996
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.5620695,
+                    "longitude": -46.6558701
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "TURN_LEFT",
+                  "instructions": "Vire à esquerda em direção a Alameda Casa Branca"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "0,1 km"
+                  },
+                  "staticDuration": {
+                    "text": "1 min"
+                  }
+                },
+                "travelMode": "DRIVE"
+              },
+              {
+                "distanceMeters": 86,
+                "staticDuration": "29s",
+                "polyline": {
+                  "encodedPolyline": "|}xnCdnw{GGGKKm@t@CDIHUXCD"
+                },
+                "startLocation": {
+                  "latLng": {
+                    "latitude": -23.5620695,
+                    "longitude": -46.6558701
+                  }
+                },
+                "endLocation": {
+                  "latLng": {
+                    "latitude": -23.5615351,
+                    "longitude": -46.6562816
+                  }
+                },
+                "navigationInstruction": {
+                  "maneuver": "TURN_LEFT",
+                  "instructions": "Vire à esquerda em direção a Av. Paulista\nEncerrada Domingos entre as 10:00 – 19:00\nO destino encontra-se à direita"
+                },
+                "localizedValues": {
+                  "distance": {
+                    "text": "86 m"
+                  },
+                  "staticDuration": {
+                    "text": "1 min"
+                  }
+                },
+                "travelMode": "DRIVE"
+              }
+            ],
+            "localizedValues": {
+              "distance": {
+                "text": "3,0 km"
+              },
+              "staticDuration": {
+                "text": "11 minutos"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "geocodingResults": {
+      "origin": {
+        "geocoderStatus": {},
+        "type": [
+          "street_address"
+        ],
+        "placeId": "EkVBdi4gQnJhc2lsLCAyMDMzIC0gSmFyZGltIEFtZXJpY2EsIFPDo28gUGF1bG8gLSBTUCwgMDE0MzEtMDAxLCBCcmF6aWwiMRIvChQKEgmRwqOyflfOlBEbfxGjwses1xDxDyoUChIJ0U9qcNhZzpQRbMqz2uTNjFM"
+      },
+      "destination": {
+        "geocoderStatus": {},
+        "type": [
+          "street_address"
+        ],
+        "placeId": "ChIJvS4WJslZzpQRfufYwqjow_Y"
+      }
+    }
+  }
+}

@@ -101,6 +101,8 @@ workflows:
           npm install -g appium
           # Test project uses automationName espresso (not only UiAutomator2).
           appium driver install uiautomator2
+          # Espresso driver 8.x builds espresso-server with bundled Gradle 9 + AGP 9; the
+          # test suite no longer pins Gradle/AGP in espressoBuildConfig to the app’s AGP.
           appium driver install espresso
           appium driver list --installed
 

@@ -141,8 +141,15 @@ workflows:
             MVN_CMD="./mvnw"
           else
             if ! command -v mvn >/dev/null 2>&1; then
-              curl -fsSL "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xz -C /tmp
-              export PATH="/tmp/apache-maven-${MAVEN_VERSION}/bin:$PATH"
+              MAVEN_BASE="apache-maven-${MAVEN_VERSION}"
+              MAVEN_TAR="${MAVEN_BASE}-bin.tar.gz"
+              # dlcdn.apache.org path is unreliable in CI; archive + downloads are canonical.
+              U1="https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/${MAVEN_TAR}"
+              U2="https://downloads.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/${MAVEN_TAR}"
+              if ! curl -fsSL "$U1" | tar -xz -C /tmp; then
+                curl -fsSL "$U2" | tar -xz -C /tmp
+              fi
+              export PATH="/tmp/${MAVEN_BASE}/bin:$PATH"
             fi
             MVN_CMD="mvn"
           fi

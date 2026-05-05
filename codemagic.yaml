@@ -25,6 +25,8 @@ workflows:
         # Caminho fixo do debug APK deste módulo app/ (evita find com múltiplos APKs)
         APK_REL_PATH: "app/build/outputs/apk/debug/app-debug.apk"
         SELENIUM_IMAGE: "selenium/standalone-chrome:4.27.0"
+        # Linux Codemagic não inclui mvn no PATH; usado no passo Run E2E se não houver mvnw no repo de testes
+        MAVEN_VERSION: "3.9.9"
     scripts:
       - name: Prepare Android SDK for Gradle
         script: |
@@ -133,10 +135,22 @@ workflows:
         script: |
           set -e
           cd "$CM_BUILD_DIR/tests_project"
+          # Maven: imagens Linux não trazem mvn. Preferir wrapper do repo de testes; senão instalar Apache Maven.
+          if [ -f ./mvnw ]; then
+            chmod +x ./mvnw
+            MVN_CMD="./mvnw"
+          else
+            if ! command -v mvn >/dev/null 2>&1; then
+              curl -fsSL "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xz -C /tmp
+              export PATH="/tmp/apache-maven-${MAVEN_VERSION}/bin:$PATH"
+            fi
+            MVN_CMD="mvn"
+          fi
+          $MVN_CMD -version
           # Repo de testes: DriverTestConfig lê appium.app (Surefire) e SELENIUM_REMOTE_URL.
           # O perfil dockerized-web define default /home/androidusr/... para Docker local; aqui
           # -Dappium.app sobrescreve com o APK recém-gerado neste build (caminho no runner Codemagic).
-          mvn -B test -Pdockerized-web -Dappium.app="$APK_PATH"
+          $MVN_CMD -B test -Pdockerized-web -Dappium.app="$APK_PATH"
         test_report: tests_project/target/surefire-reports/*.xml
 
     artifacts:

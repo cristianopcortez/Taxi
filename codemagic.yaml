@@ -70,16 +70,41 @@ workflows:
       - name: Appium, AVD e boot do emulador
         script: |
           set -e
+          # cmdline-tools não ficam no PATH por padrão no Linux Codemagic — usar caminho explícito.
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          if [ -z "$SDK" ]; then
+            SDK="/usr/local/share/android-sdk"
+          fi
+          CMDBIN=""
+          for cand in "$SDK/cmdline-tools/latest/bin" "$SDK/cmdline-tools/bin"; do
+            if [ -x "$cand/sdkmanager" ]; then
+              CMDBIN="$cand"
+              break
+            fi
+          done
+          if [ -z "$CMDBIN" ] && [ -x "/usr/local/share/android-sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDK="/usr/local/share/android-sdk"
+            CMDBIN="$SDK/cmdline-tools/latest/bin"
+          fi
+          if [ -z "$CMDBIN" ]; then
+            echo "sdkmanager não encontrado. ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT ANDROID_HOME=$ANDROID_HOME"
+            find "$SDK" -name sdkmanager -type f 2>/dev/null | head -5 || true
+            exit 1
+          fi
+          export PATH="$CMDBIN:$SDK/platform-tools:$SDK/emulator:$PATH"
+          SDKMANAGER="$CMDBIN/sdkmanager"
+          AVDMANAGER="$CMDBIN/avdmanager"
+          echo "Using SDK=$SDK cmdline-tools=$CMDBIN"
+
           npm install -g appium
           appium driver install uiautomator2
 
           # Licenças + imagem do sistema (API 33 alinhada a minSdk/target comuns; ajuste se o repositório de testes exigir outra API)
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platform-tools" "platforms;android-33" "emulator" "system-images;android-33;google_apis;x86_64"
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" "platform-tools" "platforms;android-33" "emulator" "system-images;android-33;google_apis;x86_64"
 
-          echo "no" | avdmanager create avd -n cm_test_device -k "system-images;android-33;google_apis;x86_64" --force
+          echo "no" | "$AVDMANAGER" create avd -n cm_test_device -k "system-images;android-33;google_apis;x86_64" --force
 
-          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           nohup "$SDK/emulator/emulator" -avd cm_test_device \
             -no-snapshot -no-audio -no-window \
             -gpu swiftshader_indirect \

@@ -1,5 +1,7 @@
 # 🚕 Taxi App
 
+[![Codemagic build status](https://api.codemagic.io/apps/69fa52d3c1d3fe4317e180e7/full-stack-e2e/status_badge.svg)](https://codemagic.io/app/69fa52d3c1d3fe4317e180e7/full-stack-e2e/latest_build)
+
 > Android taxi ride application built as a technical challenge initially, featuring multi-module Clean Architecture, Jetpack Compose, and REST API integration.
 
 ---

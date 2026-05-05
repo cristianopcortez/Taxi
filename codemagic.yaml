@@ -99,7 +99,10 @@ workflows:
           echo "Using SDK=$SDK cmdline-tools=$CMDBIN"
 
           npm install -g appium
+          # Test project uses automationName espresso (not only UiAutomator2).
           appium driver install uiautomator2
+          appium driver install espresso
+          appium driver list --installed
 
           # Licenças + imagem do sistema (API 33 alinhada a minSdk/target comuns; ajuste se o repositório de testes exigir outra API)
           yes | "$SDKMANAGER" --licenses >/dev/null

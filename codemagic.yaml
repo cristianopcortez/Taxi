@@ -2,7 +2,8 @@
 # Docs: https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/
 #
 # Ajuste antes de usar em produção:
-# - instance_type: linux_x4 e linux_x2 exigem conta com billing (ver tabela em "Instance type" na doc).
+# - Pay-as-you-go: use linux_x2 (abaixo) para Docker + KVM + emulador Android. Sem billing, use mac_mini_m2 (grátis limitado) ou troque o instance_type.
+# - linux_x4 = mais CPU/RAM (custo maior por minuto no pay-as-you-go; conferir doc/pricing).
 # - TEST_REPO_URL deve apontar para o repo de testes (ex.: native-appium-taxi). Perfil -Pdockerized-web injeta SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub (alinhado ao Selenium 4 standalone neste workflow).
 # - Para o APK chegar nos testes, o pom do repo de testes deve repassar a propriedade (ver comentário no script "Run E2E").
 # - Tempo de boot do emulador + Appium é alto; aumente max_build_duration se necessário.
@@ -10,9 +11,9 @@
 workflows:
   full-stack-e2e:
     name: Build Taxi APK & multi-platform E2E
-    # KVM/nested virt para emulador Android: use Linux. "linux_pro" não existe na doc oficial.
-    # Opções documentadas: mac_mini_m2, mac_mini_m4, linux_x2, linux_x4, windows_x2
-    instance_type: linux_x4
+    # linux_x2: 8 vCPU / 32 GB (doc). Pay-as-you-go cobra minutos de Linux (ver Billing na Codemagic).
+    # Para grátis sem Linux: volte a mac_mini_m2 (sem AVD confiável na doc).
+    instance_type: linux_x2
     max_build_duration: 120
     environment:
       java: 17

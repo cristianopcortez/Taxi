@@ -1,0 +1,118 @@
+# Codemagic: build do APK deste projeto + testes E2E (Selenium + Appium) a partir de repositório externo.
+# Docs: https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/
+#
+# Ajuste antes de usar em produção:
+# - instance_type: linux_x4 e linux_x2 exigem conta com billing (ver tabela em "Instance type" na doc).
+# - TEST_REPO_URL deve apontar para o repo de testes (ex.: native-appium-taxi). Perfil -Pdockerized-web injeta SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub (alinhado ao Selenium 4 standalone neste workflow).
+# - Para o APK chegar nos testes, o pom do repo de testes deve repassar a propriedade (ver comentário no script "Run E2E").
+# - Tempo de boot do emulador + Appium é alto; aumente max_build_duration se necessário.
+
+workflows:
+  full-stack-e2e:
+    name: Build Taxi APK & multi-platform E2E
+    # KVM/nested virt para emulador Android: use Linux. "linux_pro" não existe na doc oficial.
+    # Opções documentadas: mac_mini_m2, mac_mini_m4, linux_x2, linux_x4, windows_x2
+    instance_type: linux_x4
+    max_build_duration: 120
+    environment:
+      java: 17
+      node: latest
+      # ubuntu: 24.04   # opcional para Linux; ver doc "Build machine and software versions"
+      vars:
+        # Repo Maven (artifactId native-appium-taxi no pom que você enviou)
+        TEST_REPO_URL: "https://github.com/cristianopcortez/native-appium-demo.git"
+        # Caminho fixo do debug APK deste módulo app/ (evita find com múltiplos APKs)
+        APK_REL_PATH: "app/build/outputs/apk/debug/app-debug.apk"
+        SELENIUM_IMAGE: "selenium/standalone-chrome:4.27.0"
+    scripts:
+      - name: Prepare Android SDK for Gradle
+        script: |
+          set -e
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "sdk.dir=$SDK" > "$CM_BUILD_DIR/local.properties"
+
+      - name: Build debug APK
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+          APK_PATH="$CM_BUILD_DIR/$APK_REL_PATH"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "APK não encontrado em $APK_PATH"
+            exit 1
+          fi
+          echo "APK_PATH=$APK_PATH" >> "$CM_ENV"
+          echo "Built APK: $APK_PATH"
+
+      - name: Start Selenium (standalone Chrome)
+        script: |
+          set -e
+          docker rm -f selenium-standalone 2>/dev/null || true
+          docker run -d --name selenium-standalone --shm-size=2g -p 4444:4444 -p 7900:7900 "$SELENIUM_IMAGE"
+          # Aguarda o Grid/WebDriver ficar disponível (ajuste a URL se o repo de testes usar outra porta/path)
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:4444/wd/hub/status >/dev/null 2>&1 || curl -sf http://localhost:4444/status >/dev/null 2>&1; then
+              echo "Selenium responder em http://localhost:4444"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Clone test project
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          rm -rf tests_project
+          git clone --depth 1 "$TEST_REPO_URL" tests_project
+
+      - name: Appium, AVD e boot do emulador
+        script: |
+          set -e
+          npm install -g appium
+          appium driver install uiautomator2
+
+          # Licenças + imagem do sistema (API 33 alinhada a minSdk/target comuns; ajuste se o repositório de testes exigir outra API)
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platform-tools" "platforms;android-33" "emulator" "system-images;android-33;google_apis;x86_64"
+
+          echo "no" | avdmanager create avd -n cm_test_device -k "system-images;android-33;google_apis;x86_64" --force
+
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          nohup "$SDK/emulator/emulator" -avd cm_test_device \
+            -no-snapshot -no-audio -no-window \
+            -gpu swiftshader_indirect \
+            -accel on \
+            >/dev/null 2>&1 &
+          adb wait-for-device
+          # Aguarda boot completo (alternativa ao utilitário android-wait-for-emulator em algumas imagens)
+          boot=""
+          for i in $(seq 1 180); do
+            boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)
+            if [ "$boot" = "1" ]; then
+              echo "Emulador pronto."
+              break
+            fi
+            sleep 2
+          done
+          if [ "$boot" != "1" ]; then
+            echo "Timeout aguardando sys.boot_completed."
+            exit 1
+          fi
+
+          nohup appium --log "$CM_BUILD_DIR/appium.log" >/dev/null 2>&1 &
+          sleep 5
+
+      - name: Run E2E tests (Maven)
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/tests_project"
+          # Repo de testes: DriverTestConfig lê appium.app (Surefire) e SELENIUM_REMOTE_URL.
+          # O perfil dockerized-web define default /home/androidusr/... para Docker local; aqui
+          # -Dappium.app sobrescreve com o APK recém-gerado neste build (caminho no runner Codemagic).
+          mvn -B test -Pdockerized-web -Dappium.app="$APK_PATH"
+        test_report: tests_project/target/surefire-reports/*.xml
+
+    artifacts:
+      - app/build/outputs/apk/**/*.apk
+      - appium.log

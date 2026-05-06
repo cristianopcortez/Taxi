@@ -175,8 +175,38 @@ workflows:
             exit 1
           fi
 
-          nohup appium --log "$CM_BUILD_DIR/appium.log" >/dev/null 2>&1 &
-          sleep 5
+          # Espresso rebuild spawns Gradle: cap workers / heap para reduzir OOM neste mesmo runner.
+          export ANDROID_SDK_ROOT="$SDK"
+          export ANDROID_HOME="$SDK"
+          export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=6144}"
+          export GRADLE_OPTS="${GRADLE_OPTS:--Dorg.gradle.workers.max=2 -Xmx3072m -XX:MaxMetaspaceSize=512m}"
+
+          APP_LOG="$CM_BUILD_DIR/appium.log"
+          APP_NOHUP="$CM_BUILD_DIR/appium-nohup.log"
+          rm -f "$APP_LOG" "$APP_NOHUP"
+          touch "$APP_LOG"
+          nohup appium --log-timestamp --log-level info \
+            --log "$APP_LOG" >>"$APP_NOHUP" 2>&1 &
+          appium_pid="$!"
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4723/status >/dev/null 2>&1; then
+              echo "Appium pronto em http://127.0.0.1:4723"
+              break
+            fi
+            if ! kill -0 "$appium_pid" 2>/dev/null; then
+              echo "Appium encerrou antes de responder (pid $appium_pid). Últimas linhas:"
+              tail -n 80 "$APP_LOG" 2>/dev/null || true
+              tail -n 80 "$APP_NOHUP" 2>/dev/null || true
+              exit 1
+            fi
+            sleep 2
+          done
+          if ! curl -sf http://127.0.0.1:4723/status >/dev/null 2>&1; then
+            echo "Timeout aguardando Appium /status"
+            tail -n 120 "$APP_LOG" 2>/dev/null || true
+            tail -n 120 "$APP_NOHUP" 2>/dev/null || true
+            exit 1
+          fi
 
       - name: Run E2E tests (Maven)
         script: |
@@ -227,3 +257,4 @@ workflows:
     artifacts:
       - app/build/outputs/apk/**/*.apk
       - appium.log
+      - appium-nohup.log

@@ -10,6 +10,8 @@
 /.idea/androidTestResultsUserPreferences.xml
 /.idea/copilot.data.migration.agent.xml
 /.idea/deploymentTargetSelector.xml
+/.idea/misc.xml
+/.idea/vcs.xml
 .DS_Store
 /build
 build/

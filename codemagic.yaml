@@ -29,6 +29,12 @@ workflows:
     # Para grátis sem Linux: volte a mac_mini_m2 (sem AVD confiável na doc).
     instance_type: linux_x2
     max_build_duration: 120
+    cacheing:
+      enabled: true
+      watched_paths:
+        - ~/.m2/repository     # Cache do Maven
+        - ~/.gradle/caches     # Cache do Gradle
+        - ~/.gradle/wrapper    # Cache do Wrapper do Gradle
     environment:
       java: 17
       node: latest

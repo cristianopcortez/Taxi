@@ -12,6 +12,9 @@
 #   Não defina KEYSTORE_PATH_IN_CONTAINER vazio no Codemagic: pode impedir CM_ENV — o YAML grava também
 #   config/.ci-espresso-keystore.path no passo de build como fallback estável entre steps.
 #   Grupos da UI (Environment variables) precisam ser importados em environment.groups — ver doc Codemagic.
+#   Após clone, aplica-se ci/e2e-appium-http-timeout.patch no repo de testes (HTTP read timeout do
+#   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
+#   AndroidDriverManager.java do repositório de testes divergir.
 
 workflows:
   full-stack-e2e:
@@ -110,6 +113,10 @@ workflows:
           cd "$CM_BUILD_DIR"
           rm -rf tests_project
           git clone --depth 1 "$TEST_REPO_URL" tests_project
+          if ! git -C tests_project apply "$CM_BUILD_DIR/ci/e2e-appium-http-timeout.patch"; then
+            echo "Patch ci/e2e-appium-http-timeout.patch não aplicou (repo de testes mudou?). Commit no Taxi ou alinhe revisão."
+            exit 1
+          fi
 
       - name: Appium, AVD e boot do emulador
         script: |

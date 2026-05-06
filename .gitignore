@@ -35,3 +35,7 @@ compose-*.txt
 
 /config/.ci-espresso-keystore.path
 
+
+# Local clone do repo de testes E2E (só para gerar patch; CI clona do TEST_REPO_URL).
+/tmp_native_demo/
+

@@ -11,8 +11,8 @@
 #   KEYSTORE_BASE64 (base64 do .jks, uma linha), KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS (ex.: my-debug-alias).
 #   Não defina KEYSTORE_PATH_IN_CONTAINER vazio no Codemagic: pode impedir CM_ENV — o YAML grava também
 #   config/.ci-espresso-keystore.path no passo de build como fallback estável entre steps.
-#   O assembleDebug passa -PciSharedDebugKeystorePath=... para o Gradle alinhar assinatura ao
-#   Espresso mesmo se o ambiente não propagar SHARED_DEBUG_KEYSTORE_PATH na fase de configuração.
+#   O assembleDebug passa -PciSharedDebugKeystorePath=... (-P também para store/alias/password)
+#   para o Gradle alinhar assinatura ao Espresso quando env/daemon falham só com variáveis.
 #   Grupos da UI (Environment variables) precisam ser importados em environment.groups — ver doc Codemagic.
 #   Após clone, aplica-se ci/e2e-appium-http-timeout.patch no repo de testes (HTTP read timeout do
 #   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
@@ -88,10 +88,19 @@ workflows:
             echo "KEYSTORE_PATH_IN_CONTAINER=$KEYSTORE_DECODE_PATH" >> "$CM_ENV"
             printf '%s' "$KEYSTORE_DECODE_PATH" > "$CM_BUILD_DIR/config/.ci-espresso-keystore.path"
           fi
-          # -P garante que o daemon Gradle veja o keystore mesmo quando env sozinho não entra na config (cache/execução CI).
+          # -P no :app: repassa path + credenciais ao Gradle (daemon/ordem de avaliação pode ignorar só env).
           GRADLE_CI_KS_ARGS=()
           if [ -n "${KEYSTORE_DECODE_PATH:-}" ] && [ -f "$KEYSTORE_DECODE_PATH" ]; then
-            GRADLE_CI_KS_ARGS=( -PciSharedDebugKeystorePath="$KEYSTORE_DECODE_PATH" )
+            if [ -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
+              echo "Keystore decode succeeded but KEYSTORE_PASSWORD, KEY_ALIAS ou KEY_PASSWORD não estão definidos (grupo Codemagic / secrets)."
+              exit 1
+            fi
+            GRADLE_CI_KS_ARGS=(
+              -PciSharedDebugKeystorePath="$KEYSTORE_DECODE_PATH"
+              -PciSharedDebugStorePassword="${KEYSTORE_PASSWORD}"
+              -PciSharedDebugKeyAlias="${KEY_ALIAS}"
+              -PciSharedDebugKeyPassword="${KEY_PASSWORD}"
+            )
           fi
           ./gradlew assembleDebug "${GRADLE_CI_KS_ARGS[@]}"
           APK_PATH="$CM_BUILD_DIR/$APK_REL_PATH"
@@ -104,7 +113,13 @@ workflows:
             BT="$(ls -d "$SDK_CI"/build-tools/* 2>/dev/null | sort -V | tail -1)"
             if [ -n "$BT" ] && [ -x "$BT/apksigner" ]; then
               echo "Verificação de assinatura do APK de debug (esperado: certificado não-default / alinhado ao Espresso CI):"
-              "$BT/apksigner" verify --print-certs "$APK_PATH" 2>/dev/null | head -15 || true
+              VERIFY_OUT="$("$BT/apksigner" verify --print-certs "$APK_PATH" 2>/dev/null || true)"
+              echo "$VERIFY_OUT" | head -15 || true
+              if echo "$VERIFY_OUT" | grep -Fq "CN=Android Debug"; then
+                echo ""
+                echo "ERRO: app-debug.apk ainda está com certificado CN=Android Debug (debug default). Confira findProperty Gradle / grupos GENERAL_CREDENTIALS."
+                exit 1
+              fi
             fi
           fi
           echo "APK_PATH=$APK_PATH" >> "$CM_ENV"

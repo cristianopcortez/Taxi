@@ -8,17 +8,26 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+/**
+ * Codemagic: pass `-PciSharedDebugKeystorePath=...` (and optionally
+ * `-PciSharedDebugStorePassword=...`, `-PciSharedDebugKeyAlias=...`, `-PciSharedDebugKeyPassword=...`)
+ * so `:app` always sees CLI properties. Env fallbacks stay for local/Android Studio.
+ */
+fun mergedProjectProperty(project: org.gradle.api.Project, key: String): String? =
+    sequenceOf(project, project.rootProject).mapNotNull { p ->
+        p.findProperty(key)?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+    }.firstOrNull()
+
 fun sharedDebugKeystorePath(project: org.gradle.api.Project): String? {
-    val fromProp =
-        project.providers
-            .gradleProperty("ciSharedDebugKeystorePath")
-            .orNull
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
+    val fromProp = mergedProjectProperty(project, "ciSharedDebugKeystorePath")
     val fromEnv =
         System.getenv("SHARED_DEBUG_KEYSTORE_PATH")?.trim()?.takeIf { it.isNotEmpty() }
     return fromProp ?: fromEnv
 }
+
+private fun signingSecret(project: org.gradle.api.Project, gradleProp: String, env: String): String =
+    mergedProjectProperty(project, gradleProp)?.trim()?.takeIf { it.isNotEmpty() }
+        ?: (System.getenv(env)?.trim().orEmpty())
 
 android {
     namespace = "br.com.ccortez.taxi"
@@ -43,9 +52,10 @@ android {
         sharedDebugKeystorePath(project)?.takeIf { file(it).exists() }?.also { ksPath ->
             create("sharedDebug") {
                 storeFile = file(ksPath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-                keyAlias = System.getenv("KEY_ALIAS") ?: ""
-                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+                storePassword =
+                    signingSecret(project, "ciSharedDebugStorePassword", "KEYSTORE_PASSWORD")
+                keyAlias = signingSecret(project, "ciSharedDebugKeyAlias", "KEY_ALIAS")
+                keyPassword = signingSecret(project, "ciSharedDebugKeyPassword", "KEY_PASSWORD")
             }
         }
     }

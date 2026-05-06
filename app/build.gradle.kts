@@ -8,8 +8,17 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
-fun sharedDebugKeystorePath(): String? =
-    System.getenv("SHARED_DEBUG_KEYSTORE_PATH")?.trim()?.takeIf { it.isNotEmpty() }
+fun sharedDebugKeystorePath(project: org.gradle.api.Project): String? {
+    val fromProp =
+        project.providers
+            .gradleProperty("ciSharedDebugKeystorePath")
+            .orNull
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+    val fromEnv =
+        System.getenv("SHARED_DEBUG_KEYSTORE_PATH")?.trim()?.takeIf { it.isNotEmpty() }
+    return fromProp ?: fromEnv
+}
 
 android {
     namespace = "br.com.ccortez.taxi"
@@ -31,7 +40,7 @@ android {
     }
 
     signingConfigs {
-        sharedDebugKeystorePath()?.also { ksPath ->
+        sharedDebugKeystorePath(project)?.takeIf { file(it).exists() }?.also { ksPath ->
             create("sharedDebug") {
                 storeFile = file(ksPath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
@@ -43,7 +52,7 @@ android {
 
     buildTypes {
         debug {
-            sharedDebugKeystorePath()?.takeIf { file(it).exists() }?.also {
+            sharedDebugKeystorePath(project)?.takeIf { file(it).exists() }?.also {
                 signingConfig = signingConfigs.getByName("sharedDebug")
             }
         }

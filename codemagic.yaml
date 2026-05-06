@@ -267,7 +267,29 @@ workflows:
           # Repo de testes: DriverTestConfig lê appium.app (Surefire) e SELENIUM_REMOTE_URL.
           # O perfil dockerized-web define default /home/androidusr/... para Docker local; aqui
           # -Dappium.app sobrescreve com o APK recém-gerado neste build (caminho no runner Codemagic).
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          export ANDROID_SDK_ROOT="${SDK:-/usr/local/share/android-sdk}"
+          export ANDROID_HOME="$ANDROID_SDK_ROOT"
+          set +e
           $MVN_CMD -B test -Pdockerized-web -Dappium.app="$APK_PATH"
+          mvn_exit=$?
+          set -e
+          if [ "$mvn_exit" -ne 0 ]; then
+            echo ""
+            echo "======= Diagnóstico E2E (Appium / Espresso) — veja também artifacts appium*.log ======="
+            tail -n 300 "$CM_BUILD_DIR/appium.log" 2>/dev/null || echo "(sem appium.log)"
+            echo ""
+            tail -n 200 "$CM_BUILD_DIR/appium-nohup.log" 2>/dev/null || echo "(sem appium-nohup.log)"
+            echo ""
+            echo "Diretórios espresso-server em /tmp (Gradle do driver):"
+            ls -la /tmp 2>/dev/null | grep -E 'espresso|appium' || true
+            for d in /tmp/espresso-server-*; do
+              [ -d "$d" ] || continue
+              echo "--- últimos arquivos sob $d ---"
+              find "$d" -maxdepth 5 -type f \( -name "*.log" -o -name "hs_err*.log" \) 2>/dev/null | head -10
+            done
+            exit "$mvn_exit"
+          fi
         test_report: tests_project/target/surefire-reports/*.xml
 
     artifacts:

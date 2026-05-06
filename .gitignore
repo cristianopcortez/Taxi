@@ -30,3 +30,6 @@ compose-*.txt
 # Decode do Codemagic (KEYSTORE_BASE64 em CI) ou script local
 /config/ci-debug-keystore.jks
 
+
+/config/.ci-espresso-keystore.path
+

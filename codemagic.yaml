@@ -9,6 +9,9 @@
 # - Tempo de boot do emulador + Appium é alto; aumente max_build_duration se necessário.
 # - Assinatura compartilhada com Espresso (opcional nas variáveis do app Codemagic, marca como secret):
 #   KEYSTORE_BASE64 (base64 do .jks, uma linha), KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS (ex.: my-debug-alias).
+#   Não defina KEYSTORE_PATH_IN_CONTAINER vazio no Codemagic: pode impedir CM_ENV — o YAML grava também
+#   config/.ci-espresso-keystore.path no passo de build como fallback estável entre steps.
+#   Grupos da UI (Environment variables) precisam ser importados em environment.groups — ver doc Codemagic.
 
 workflows:
   full-stack-e2e:
@@ -20,6 +23,10 @@ workflows:
     environment:
       java: 17
       node: latest
+      # Importa KEYSTORE_BASE64, KEY_ALIAS, KEYSTORE_PASSWORD, KEY_PASSWORD (grupo no app Codemagic).
+      # O nome deve coincidir com o Variable group no painel (ex.: GENERAL_CREDENTIALS).
+      groups:
+        - GENERAL_CREDENTIALS
       # ubuntu: 24.04   # opcional para Linux; ver doc "Build machine and software versions"
       vars:
         # Repo Maven (artifactId native-appium-taxi no pom que você enviou)
@@ -49,6 +56,7 @@ workflows:
             export SHARED_DEBUG_KEYSTORE_PATH="$KEYSTORE_DECODE_PATH"
             echo "SHARED_DEBUG_KEYSTORE_PATH=$KEYSTORE_DECODE_PATH" >> "$CM_ENV"
             echo "KEYSTORE_PATH_IN_CONTAINER=$KEYSTORE_DECODE_PATH" >> "$CM_ENV"
+            printf '%s' "$KEYSTORE_DECODE_PATH" > "$CM_BUILD_DIR/config/.ci-espresso-keystore.path"
           fi
           ./gradlew assembleDebug
           APK_PATH="$CM_BUILD_DIR/$APK_REL_PATH"
@@ -170,8 +178,13 @@ workflows:
             MVN_CMD="mvn"
           fi
           $MVN_CMD -version
-          # Espresso precisa do mesmo keystore que o app-debug.apk. Com KEYSTORE_BASE64 no build,
-          # KEYSTORE_PATH_IN_CONTAINER veio no CM_ENV. Sem isso, assume debug padrão do Android.
+          # Espresso precisa do mesmo keystore que o app-debug.apk. CM_ENV pode ser sobrescrito por
+          # uma variável vazia KEYSTORE_PATH_IN_CONTAINER no Codemagic; ler path gravado pelo build.
+          KEYSTORE_PATH_FILE="$CM_BUILD_DIR/config/.ci-espresso-keystore.path"
+          if [ -f "$KEYSTORE_PATH_FILE" ]; then
+            export KEYSTORE_PATH_IN_CONTAINER="$(tr -d '\r\n' < "$KEYSTORE_PATH_FILE")"
+          fi
+          # Com KEYSTORE_BASE64 no build, KEYSTORE_PATH_IN_CONTAINER veio acima ou no CM_ENV. Senão:
           if [ -z "${KEYSTORE_PATH_IN_CONTAINER:-}" ]; then
             export KEYSTORE_PATH_IN_CONTAINER="${HOME}/.android/debug.keystore"
             export KEYSTORE_PASSWORD=android

@@ -51,7 +51,30 @@ workflows:
           if [ -n "${KEYSTORE_BASE64:-}" ]; then
             mkdir -p config
             KEYSTORE_DECODE_PATH="$CM_BUILD_DIR/config/ci-debug-keystore.jks"
-            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_DECODE_PATH"
+            # Codemagic / paste issues: CR/LF, tabs, stray spaces → GNU base64 "invalid input".
+            # Expect raw base64 of the binary .jks (NOT certutil PEM with BEGIN/END lines).
+            TMP_B64="$(mktemp)"
+            printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n\t ' > "$TMP_B64"
+            decode_ok=""
+            if base64 -d < "$TMP_B64" > "$KEYSTORE_DECODE_PATH" 2>/dev/null \
+              && [ -s "$KEYSTORE_DECODE_PATH" ]; then
+              decode_ok=1
+            elif base64 -di < "$TMP_B64" > "$KEYSTORE_DECODE_PATH" 2>/dev/null \
+              && [ -s "$KEYSTORE_DECODE_PATH" ]; then
+              decode_ok=1
+            elif command -v openssl >/dev/null 2>&1 \
+              && openssl base64 -d -A -in "$TMP_B64" -out "$KEYSTORE_DECODE_PATH" 2>/dev/null \
+              && [ -s "$KEYSTORE_DECODE_PATH" ]; then
+              decode_ok=1
+            fi
+            rm -f "$TMP_B64"
+            if [ -z "$decode_ok" ]; then
+              echo "Could not decode KEYSTORE_BASE64. Fix the secret value:"
+              echo "  • Must be raw base64 of the .jks bytes (single line or strip newlines)."
+              echo "  • Do NOT use PEM text (BEGIN/END)."
+              echo "  • Windows: [Convert]::ToBase64String([IO.File]::ReadAllBytes('my.jks')) | Set-Clipboard"
+              exit 1
+            fi
             chmod 600 "$KEYSTORE_DECODE_PATH"
             export SHARED_DEBUG_KEYSTORE_PATH="$KEYSTORE_DECODE_PATH"
             echo "SHARED_DEBUG_KEYSTORE_PATH=$KEYSTORE_DECODE_PATH" >> "$CM_ENV"

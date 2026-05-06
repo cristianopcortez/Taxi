@@ -7,6 +7,8 @@
 # - TEST_REPO_URL deve apontar para o repo de testes (ex.: native-appium-taxi). Perfil -Pdockerized-web injeta SELENIUM_REMOTE_URL=http://localhost:4444/wd/hub (alinhado ao Selenium 4 standalone neste workflow).
 # - Para o APK chegar nos testes, o pom do repo de testes deve repassar a propriedade (ver comentário no script "Run E2E").
 # - Tempo de boot do emulador + Appium é alto; aumente max_build_duration se necessário.
+# - Assinatura compartilhada com Espresso (opcional nas variáveis do app Codemagic, marca como secret):
+#   KEYSTORE_BASE64 (base64 do .jks, uma linha), KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS (ex.: my-debug-alias).
 
 workflows:
   full-stack-e2e:
@@ -39,6 +41,15 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR"
           chmod +x ./gradlew
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            mkdir -p config
+            KEYSTORE_DECODE_PATH="$CM_BUILD_DIR/config/ci-debug-keystore.jks"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_DECODE_PATH"
+            chmod 600 "$KEYSTORE_DECODE_PATH"
+            export SHARED_DEBUG_KEYSTORE_PATH="$KEYSTORE_DECODE_PATH"
+            echo "SHARED_DEBUG_KEYSTORE_PATH=$KEYSTORE_DECODE_PATH" >> "$CM_ENV"
+            echo "KEYSTORE_PATH_IN_CONTAINER=$KEYSTORE_DECODE_PATH" >> "$CM_ENV"
+          fi
           ./gradlew assembleDebug
           APK_PATH="$CM_BUILD_DIR/$APK_REL_PATH"
           if [ ! -f "$APK_PATH" ]; then
@@ -159,6 +170,18 @@ workflows:
             MVN_CMD="mvn"
           fi
           $MVN_CMD -version
+          # Espresso precisa do mesmo keystore que o app-debug.apk. Com KEYSTORE_BASE64 no build,
+          # KEYSTORE_PATH_IN_CONTAINER veio no CM_ENV. Sem isso, assume debug padrão do Android.
+          if [ -z "${KEYSTORE_PATH_IN_CONTAINER:-}" ]; then
+            export KEYSTORE_PATH_IN_CONTAINER="${HOME}/.android/debug.keystore"
+            export KEYSTORE_PASSWORD=android
+            export KEY_ALIAS=androiddebugkey
+            export KEY_PASSWORD=android
+          fi
+          if [ ! -f "$KEYSTORE_PATH_IN_CONTAINER" ]; then
+            echo "Keystore não encontrado: $KEYSTORE_PATH_IN_CONTAINER"
+            exit 1
+          fi
           # Repo de testes: DriverTestConfig lê appium.app (Surefire) e SELENIUM_REMOTE_URL.
           # O perfil dockerized-web define default /home/androidusr/... para Docker local; aqui
           # -Dappium.app sobrescreve com o APK recém-gerado neste build (caminho no runner Codemagic).

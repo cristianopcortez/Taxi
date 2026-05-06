@@ -26,3 +26,7 @@ compose-*.txt
 
 # Android Studio local device preferences
 /.idea/deviceManager.xml
+
+# Decode do Codemagic (KEYSTORE_BASE64 em CI) ou script local
+/config/ci-debug-keystore.jks
+

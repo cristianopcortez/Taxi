@@ -8,6 +8,9 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+fun sharedDebugKeystorePath(): String? =
+    System.getenv("SHARED_DEBUG_KEYSTORE_PATH")?.trim()?.takeIf { it.isNotEmpty() }
+
 android {
     namespace = "br.com.ccortez.taxi"
     compileSdk = 36
@@ -27,7 +30,24 @@ android {
 
     }
 
+    signingConfigs {
+        sharedDebugKeystorePath()?.also { ksPath ->
+            create("sharedDebug") {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            sharedDebugKeystorePath()?.takeIf { file(it).exists() }?.also {
+                signingConfig = signingConfigs.getByName("sharedDebug")
+            }
+        }
+
         release {
             isDebuggable = false
             isMinifyEnabled = true

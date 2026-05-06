@@ -17,12 +17,16 @@ index 33c8d67..cff4c30 100644
  /**
   * Creates and manages the AndroidDriver used by the UI tests.
   *
-@@ -111,12 +114,17 @@ public class AndroidDriverManager {
+@@ -111,12 +114,21 @@ public class AndroidDriverManager {
  
          options.setApp(DriverTestConfig.appiumAppPath());
 -        options.setCapability("appium:forceAppiumRebuild", true);
 +        options.setCapability("appium:forceEspressoRebuild", true);
 +        options.setCapability("appium:showGradleLog", true);
++        // Appium-adb re-signs the AUT with its bundled AOSP testkey when useKeystore=false,
++        // breaking the signature parity with the Espresso server (which uses our CI keystore
++        // through espressoBuildConfig.signingConfig). noSign keeps the AUT untouched.
++        options.setCapability("appium:noSign", true);
          options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  
          options.setNewCommandTimeout(Duration.ofSeconds(300));

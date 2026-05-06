@@ -17,7 +17,7 @@ index 33c8d67..cff4c30 100644
  /**
   * Creates and manages the AndroidDriver used by the UI tests.
   *
-@@ -111,12 +114,21 @@ public class AndroidDriverManager {
+@@ -111,12 +114,26 @@ public class AndroidDriverManager {
  
          options.setApp(DriverTestConfig.appiumAppPath());
 -        options.setCapability("appium:forceAppiumRebuild", true);
@@ -27,6 +27,11 @@ index 33c8d67..cff4c30 100644
 +        // breaking the signature parity with the Espresso server (which uses our CI keystore
 +        // through espressoBuildConfig.signingConfig). noSign keeps the AUT untouched.
 +        options.setCapability("appium:noSign", true);
++        // CI AVD API may differ from pom defaults; APPIUM_PLATFORM_VERSION aligns capabilities.
++        String platformVersionOverride = System.getenv("APPIUM_PLATFORM_VERSION");
++        if (platformVersionOverride != null && !platformVersionOverride.isBlank()) {
++            options.setCapability("appium:platformVersion", platformVersionOverride.trim());
++        }
          options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  
          options.setNewCommandTimeout(Duration.ofSeconds(300));

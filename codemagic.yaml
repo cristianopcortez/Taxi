@@ -427,11 +427,22 @@ workflows:
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
           export ANDROID_SDK_ROOT="${SDK:-/usr/local/share/android-sdk}"
           export ANDROID_HOME="$ANDROID_SDK_ROOT"
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          : >"$CM_BUILD_DIR/e2e-logcat.txt"
+          : >"$CM_BUILD_DIR/e2e-logcat-full.txt"
+          export APPIUM_PLATFORM_VERSION=""
+          APPIUM_PLATFORM_VERSION="$(adb shell getprop ro.build.version.release 2>/dev/null | tr -d '\r' || true)"
+          export APPIUM_PLATFORM_VERSION
+          echo "Maven E2E — device ro.build.version.release=${APPIUM_PLATFORM_VERSION:-?} sdk=$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r' || echo '?')"
           set +e
           $MVN_CMD -B test -Pdockerized-web -Dappium.app="$APK_PATH"
           mvn_exit=$?
           set -e
           if [ "$mvn_exit" -ne 0 ]; then
+            adb logcat -d -v time >"$CM_BUILD_DIR/e2e-logcat-full.txt" 2>/dev/null || true
+            echo ""
+            echo "======= logcat resumido (FATAL/Exception/Instrumentation) — artefato: e2e-logcat-full.txt ======="
+            adb logcat -d -v time 2>/dev/null | grep -iE '(FATAL EXCEPTION|AndroidRuntime|CRASH|E AndroidRuntime|E/Instrumentation|InstrumentationResult|E/appium|E/Espresso|UnsatisfiedLinkError|VerificationError|ClassNotFoundException)' | tail -n 220 || tail -n 220 "$CM_BUILD_DIR/e2e-logcat-full.txt" 2>/dev/null || true
             echo ""
             echo "======= Diagnóstico E2E (Appium / Espresso) — veja também artifacts appium*.log ======="
             tail -n 300 "$CM_BUILD_DIR/appium.log" 2>/dev/null || echo "(sem appium.log)"
@@ -453,3 +464,5 @@ workflows:
       - app/build/outputs/apk/**/*.apk
       - appium.log
       - appium-nohup.log
+      - e2e-logcat-full.txt
+      - e2e-logcat.txt

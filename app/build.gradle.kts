@@ -1,4 +1,6 @@
-﻿// Top-level build file where you can add configuration options common to all sub-projects/modules.
+﻿import com.android.build.api.dsl.ApplicationExtension
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -49,7 +51,7 @@ android {
     }
 
     signingConfigs {
-        sharedDebugKeystorePath(project)?.takeIf { file(it).exists() }?.also { ksPath ->
+        sharedDebugKeystorePath(project)?.trim()?.takeIf { it.isNotEmpty() }?.let { ksPath ->
             create("sharedDebug") {
                 storeFile = file(ksPath)
                 storePassword =
@@ -62,8 +64,8 @@ android {
 
     buildTypes {
         debug {
-            sharedDebugKeystorePath(project)?.takeIf { file(it).exists() }?.also {
-                signingConfig = signingConfigs.getByName("sharedDebug")
+            signingConfigs.findByName("sharedDebug")?.let { cfg ->
+                signingConfig = cfg
             }
         }
 
@@ -198,4 +200,18 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// Espresso/Appium CI: AGP occasionally finalizes defaults after `android { debug { } }`; keep shared
+// keystore wired when Codemagic passes -PciSharedDebugKeystorePath=... / env SHARED_DEBUG_KEYSTORE_PATH.
+afterEvaluate {
+    val path =
+        sharedDebugKeystorePath(project)?.trim()?.takeIf { it.isNotEmpty() } ?: return@afterEvaluate
+    if (!file(path).exists()) return@afterEvaluate
+
+    extensions.configure<ApplicationExtension>("android") {
+        val shared =
+            signingConfigs.findByName("sharedDebug") ?: return@configure
+        buildTypes.getByName("debug").signingConfig = shared
+    }
 }

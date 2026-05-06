@@ -95,6 +95,8 @@ workflows:
               echo "Keystore decode succeeded but KEYSTORE_PASSWORD, KEY_ALIAS ou KEY_PASSWORD não estão definidos (grupo Codemagic / secrets)."
               exit 1
             fi
+            # Redundância ao -P: o Gradle também lê ORG_GRADLE_PROJECT_<prop> como project property (útil em daemons/multi-step).
+            export ORG_GRADLE_PROJECT_ciSharedDebugKeystorePath="$KEYSTORE_DECODE_PATH"
             GRADLE_CI_KS_ARGS=(
               -PciSharedDebugKeystorePath="$KEYSTORE_DECODE_PATH"
               -PciSharedDebugStorePassword="${KEYSTORE_PASSWORD}"
@@ -102,7 +104,7 @@ workflows:
               -PciSharedDebugKeyPassword="${KEY_PASSWORD}"
             )
           fi
-          ./gradlew assembleDebug "${GRADLE_CI_KS_ARGS[@]}"
+          ./gradlew clean assembleDebug "${GRADLE_CI_KS_ARGS[@]}"
           APK_PATH="$CM_BUILD_DIR/$APK_REL_PATH"
           if [ ! -f "$APK_PATH" ]; then
             echo "APK não encontrado em $APK_PATH"
@@ -114,10 +116,17 @@ workflows:
             if [ -n "$BT" ] && [ -x "$BT/apksigner" ]; then
               echo "Verificação de assinatura do APK de debug (esperado: certificado não-default / alinhado ao Espresso CI):"
               VERIFY_OUT="$("$BT/apksigner" verify --print-certs "$APK_PATH" 2>/dev/null || true)"
-              echo "$VERIFY_OUT" | head -15 || true
-              if echo "$VERIFY_OUT" | grep -Fq "CN=Android Debug"; then
+              echo "$VERIFY_OUT" | head -25 || true
+              DEF_SIG=""
+              if echo "$VERIFY_OUT" | grep -Fiq "default certificate"; then
+                DEF_SIG=1
+              fi
+              if echo "$VERIFY_OUT" | grep -Eiq "CN=Android Debug"; then
+                DEF_SIG=1
+              fi
+              if [ -n "$DEF_SIG" ]; then
                 echo ""
-                echo "ERRO: app-debug.apk ainda está com certificado CN=Android Debug (debug default). Confira findProperty Gradle / grupos GENERAL_CREDENTIALS."
+                echo "ERRO: app-debug.apk parece assinado com certificado DEBUG PADRÃO (Appium diverge do Espresso com keystore CI). Confira ORG_GRADLE_PROJECT_ciSharedDebugKeystorePath / -PciSharedDebug* e app/build.gradle.kts."
                 exit 1
               fi
             fi

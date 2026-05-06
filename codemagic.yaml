@@ -434,6 +434,8 @@ workflows:
           APPIUM_PLATFORM_VERSION="$(adb shell getprop ro.build.version.release 2>/dev/null | tr -d '\r' || true)"
           export APPIUM_PLATFORM_VERSION
           echo "Maven E2E — device ro.build.version.release=${APPIUM_PLATFORM_VERSION:-?} sdk=$(adb shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r' || echo '?')"
+          # Focus logcat around this Maven/Appium slice (avoids missing lines buried in emulator boot noise).
+          adb logcat -c 2>/dev/null || true
           set +e
           $MVN_CMD -B test -Pdockerized-web -Dappium.app="$APK_PATH"
           mvn_exit=$?
@@ -441,8 +443,62 @@ workflows:
           if [ "$mvn_exit" -ne 0 ]; then
             adb logcat -d -v time >"$CM_BUILD_DIR/e2e-logcat-full.txt" 2>/dev/null || true
             echo ""
-            echo "======= logcat resumido (FATAL/Exception/Instrumentation) — artefato: e2e-logcat-full.txt ======="
-            adb logcat -d -v time 2>/dev/null | grep -iE '(FATAL EXCEPTION|AndroidRuntime|CRASH|E AndroidRuntime|E/Instrumentation|InstrumentationResult|E/appium|E/Espresso|UnsatisfiedLinkError|VerificationError|ClassNotFoundException)' | tail -n 220 || tail -n 220 "$CM_BUILD_DIR/e2e-logcat-full.txt" 2>/dev/null || true
+            echo "======= logcat resumido (crash / instrumentação / assinatura / Hilt) — artefato: e2e-logcat-full.txt ======="
+            adb logcat -d -v time 2>/dev/null | grep -iE '(FATAL EXCEPTION|AndroidRuntime|CRASH|E AndroidRuntime|E/Instrumentation|InstrumentationResult|INSTRUMENTATION_|E/appium|E/Espresso|UnsatisfiedLinkError|VerificationError|ClassNotFoundException|SecurityException|Permission Denial|signature matching|does not have a signature|PackageManager|Hilt|Dagger|NoSuchMethodError|NoClassDefFoundError|Process \(pid|espressoserver|AndroidJUnitRunner|junit\.|TestRunner)' | tail -n 280 || tail -n 280 "$CM_BUILD_DIR/e2e-logcat-full.txt" 2>/dev/null || true
+            echo ""
+            echo "======= Assinaturas AUT x servidor Espresso (devem ser idênticas — ver e2e-signatures.txt) ======="
+            SIG_OUT="$CM_BUILD_DIR/e2e-signatures.txt"
+            : >"$SIG_OUT"
+            BT_SIG="$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | sort -V | tail -1)"
+            if [ -n "${APK_FOR_TEST:-}" ] && [ -f "${APK_FOR_TEST:-}" ] && [ -x "${BT_SIG:-}/apksigner" ]; then
+              {
+                echo "=== AUT (APK em teste) ==="
+                echo "$APK_FOR_TEST"
+                "$BT_SIG/apksigner" verify --print-certs "$APK_FOR_TEST" 2>&1 || true
+                echo ""
+                echo "=== Servidor Espresso (APK gerado em /tmp pelo driver Appium) ==="
+              } >>"$SIG_OUT"
+              ESTMP="$(ls -1t /tmp/io.appium.espressoserver.test_*.apk 2>/dev/null | head -1 || true)"
+              if [ -n "$ESTMP" ] && [ -f "$ESTMP" ]; then
+                cp -f "$ESTMP" "$CM_BUILD_DIR/e2e-espresso-server.apk" 2>/dev/null || true
+                echo "$ESTMP" >>"$SIG_OUT"
+                "$BT_SIG/apksigner" verify --print-certs "$ESTMP" >>"$SIG_OUT" 2>&1 || true
+                AUT_DIGESTS="$( ("$BT_SIG/apksigner" verify --print-certs "$APK_FOR_TEST" 2>&1 || true) | grep -Fi 'sha-256 digest' | sed -E 's/.*[Dd]igest:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' | tr -d ': \r\t' )"
+                ES_DIGESTS="$( ("$BT_SIG/apksigner" verify --print-certs "$ESTMP" 2>&1 || true) | grep -Fi 'sha-256 digest' | sed -E 's/.*[Dd]igest:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' | tr -d ': \r\t' )"
+                echo "" >>"$SIG_OUT"
+                echo "=== Comparação SHA-256 normalizados (interssecção esperada não vazia) ===" >>"$SIG_OUT"
+                if [ -z "$AUT_DIGESTS" ] || [ -z "$ES_DIGESTS" ]; then
+                  echo "Não foi possível extrair digests automaticamente." >>"$SIG_OUT"
+                else
+                  match=0
+                  ADTMP="$(mktemp)"
+                  printf '%s\n' "$AUT_DIGESTS" >"$ADTMP"
+                  while read -r d; do
+                    [ -z "$d" ] && continue
+                    echo "$ES_DIGESTS" | grep -Fxq "$d" && match=1 && break
+                  done <"$ADTMP"
+                  rm -f "$ADTMP"
+                  if [ "$match" -eq 1 ]; then
+                    echo "OK: há pelo menos um signer SHA-256 em comum entre AUT e servidor Espresso." >>"$SIG_OUT"
+                  else
+                    echo "PROVÁVEL CAUSA DA FALHA: nenhum SHA-256 do AUT aparece no APK do servidor Espresso." >>"$SIG_OUT"
+                    echo "Instrumentação contra br.com.ccortez.taxi exige a mesma chave nos dois APKs." >>"$SIG_OUT"
+                    echo "Reveja KEY_ALIAS / mesmo .jks no assembleDebug e no espressoBuildConfig do repo de testes." >>"$SIG_OUT"
+                  fi
+                fi
+              else
+                echo "(nenhum /tmp/io.appium.espressoserver.test_*.apk encontrado ao falhar)" | tee -a "$SIG_OUT"
+              fi
+            else
+              echo "(pular comparação: APK_FOR_TEST vazio ou apksigner ausente — BT_SIG=${BT_SIG:-?})" | tee "$SIG_OUT"
+            fi
+            cat "$SIG_OUT"
+            echo ""
+            echo "======= adb shell am instrument -r — saída bruta → e2e-am-instrument.txt ======="
+            adb shell am instrument -w -r -e debug false -e disableAnalytics true \
+              io.appium.espressoserver.test/androidx.test.runner.AndroidJUnitRunner \
+              >"$CM_BUILD_DIR/e2e-am-instrument.txt" 2>&1 || true
+            tail -n 120 "$CM_BUILD_DIR/e2e-am-instrument.txt" 2>/dev/null || true
             echo ""
             echo "======= Diagnóstico E2E (Appium / Espresso) — veja também artifacts appium*.log ======="
             tail -n 300 "$CM_BUILD_DIR/appium.log" 2>/dev/null || echo "(sem appium.log)"
@@ -466,3 +522,6 @@ workflows:
       - appium-nohup.log
       - e2e-logcat-full.txt
       - e2e-logcat.txt
+      - e2e-signatures.txt
+      - e2e-am-instrument.txt
+      - e2e-espresso-server.apk

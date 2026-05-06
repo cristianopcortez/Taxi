@@ -17,22 +17,37 @@ index 33c8d67..cff4c30 100644
  /**
   * Creates and manages the AndroidDriver used by the UI tests.
   *
-@@ -111,12 +114,26 @@ public class AndroidDriverManager {
+@@ -111,11 +114,40 @@ public class AndroidDriverManager {
  
          options.setApp(DriverTestConfig.appiumAppPath());
 -        options.setCapability("appium:forceAppiumRebuild", true);
 +        options.setCapability("appium:forceEspressoRebuild", true);
 +        options.setCapability("appium:showGradleLog", true);
-+        // Appium-adb re-signs the AUT with its bundled AOSP testkey when useKeystore=false,
-+        // breaking the signature parity with the Espresso server (which uses our CI keystore
-+        // through espressoBuildConfig.signingConfig). noSign keeps the AUT untouched.
++
++        String keystorePath = System.getenv("KEYSTORE_PATH_IN_CONTAINER");
++        String keystorePassword = System.getenv("KEYSTORE_PASSWORD");
++        String keyAlias = System.getenv("KEY_ALIAS");
++        String keyPassword = System.getenv("KEY_PASSWORD");
++        if (keystorePath != null && !keystorePath.isBlank()
++                && keystorePassword != null && !keystorePassword.isBlank()
++                && keyAlias != null && !keyAlias.isBlank()
++                && keyPassword != null && !keyPassword.isBlank()) {
++            options.setCapability("appium:useKeystore", true);
++            options.setCapability("appium:keystorePath", keystorePath.trim());
++            options.setCapability("appium:keystorePassword", keystorePassword);
++            options.setCapability("appium:keyAlias", keyAlias.trim());
++            options.setCapability("appium:keyPassword", keyPassword);
++        }
++
++        // Keep appium-adb from re-signing the AUT. The Espresso test-server APK must be signed with
++        // appium:useKeystore + keystore* (above); espressoBuildConfig.signingConfig alone does not do that.
 +        options.setCapability("appium:noSign", true);
 +        // CI AVD API may differ from pom defaults; APPIUM_PLATFORM_VERSION aligns capabilities.
 +        String platformVersionOverride = System.getenv("APPIUM_PLATFORM_VERSION");
 +        if (platformVersionOverride != null && !platformVersionOverride.isBlank()) {
 +            options.setCapability("appium:platformVersion", platformVersionOverride.trim());
 +        }
-         options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
++        options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  
          options.setNewCommandTimeout(Duration.ofSeconds(300));
  

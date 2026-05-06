@@ -20,10 +20,11 @@
 #   Após clone, aplica-se ci/e2e-appium-http-timeout.patch no repo de testes (HTTP read timeout do
 #   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
 #   AndroidDriverManager.java do repositório de testes divergir. Patch: ClientConfig read timeout,
-#   appium:showGradleLog, appium:noSign=true (impede appium-adb de re-assinar o AUT com a testkey
-#   AOSP quando useKeystore=false — preserva paridade com o servidor Espresso assinado pelo CI
-#   keystore via espressoBuildConfig.signingConfig) e no servidor Appium codemagic usa
-#   --keep-alive-timeout / --request-timeout.
+#   appium:forceEspressoRebuild, appium:showGradleLog, appium:noSign (não re-assina o AUT).
+#   Com KEYSTORE_PATH_IN_CONTAINER + KEYSTORE_PASSWORD + KEY_ALIAS + KEY_PASSWORD no ambiente Maven,
+#   o patch define appium:useKeystore e appium:keystore* — o APK do servidor Espresso (gerado em /tmp
+#   pelo driver) deve ser assinado com a mesma chave do app; apenas espressoBuildConfig.signingConfig
+#   não garante isso. No Appium da VM: --keep-alive-timeout / --request-timeout.
 
 workflows:
   full-stack-e2e:
@@ -244,6 +245,8 @@ workflows:
           grep -q "ClientConfig" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             && grep -q "showGradleLog" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             && grep -q "appium:noSign" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
+            && grep -q "useKeystore" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
+            && grep -q "keystorePath" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             || { echo "Patch parece não ter sido aplicado ao AndroidDriverManager"; exit 1; }
 
       - name: Appium, AVD e boot do emulador

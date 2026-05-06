@@ -16,7 +16,8 @@ plugins {
  * so `:app` always sees CLI properties. Env fallbacks stay for local/Android Studio.
  */
 fun mergedProjectProperty(project: org.gradle.api.Project, key: String): String? =
-    sequenceOf(project, project.rootProject).mapNotNull { p ->
+    // Prefer root first: `-P` / ORG_GRADLE_PROJECT_* are bound on the root before subprojects evaluate.
+    sequenceOf(project.rootProject, project).mapNotNull { p ->
         p.findProperty(key)?.toString()?.trim()?.takeIf { it.isNotEmpty() }
     }.firstOrNull()
 
@@ -52,12 +53,18 @@ android {
 
     signingConfigs {
         sharedDebugKeystorePath(project)?.trim()?.takeIf { it.isNotEmpty() }?.let { ksPath ->
+            val storePwd =
+                signingSecret(project, "ciSharedDebugStorePassword", "KEYSTORE_PASSWORD")
+            val alias = signingSecret(project, "ciSharedDebugKeyAlias", "KEY_ALIAS")
+            val keyPwd = signingSecret(project, "ciSharedDebugKeyPassword", "KEY_PASSWORD")
+            require(storePwd.isNotEmpty() && alias.isNotEmpty() && keyPwd.isNotEmpty()) {
+                "CI debug keystore path is set ($ksPath) but ciSharedDebug* / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD are missing or empty."
+            }
             create("sharedDebug") {
                 storeFile = file(ksPath)
-                storePassword =
-                    signingSecret(project, "ciSharedDebugStorePassword", "KEYSTORE_PASSWORD")
-                keyAlias = signingSecret(project, "ciSharedDebugKeyAlias", "KEY_ALIAS")
-                keyPassword = signingSecret(project, "ciSharedDebugKeyPassword", "KEY_PASSWORD")
+                storePassword = storePwd
+                keyAlias = alias
+                keyPassword = keyPwd
             }
         }
     }

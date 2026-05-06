@@ -54,6 +54,8 @@ workflows:
           set -e
           cd "$CM_BUILD_DIR"
           chmod +x ./gradlew
+          # Isolate this CI build from any stale Gradle daemon/state (can drop -P CI props visually).
+          ./gradlew --stop 2>/dev/null || true
           KEYSTORE_DECODE_PATH=""
           if [ -n "${KEYSTORE_BASE64:-}" ]; then
             mkdir -p config
@@ -113,22 +115,43 @@ workflows:
           if [ -n "${KEYSTORE_DECODE_PATH:-}" ] && [ -f "$KEYSTORE_DECODE_PATH" ]; then
             SDK_CI="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
             BT="$(ls -d "$SDK_CI"/build-tools/* 2>/dev/null | sort -V | tail -1)"
-            if [ -n "$BT" ] && [ -x "$BT/apksigner" ]; then
-              echo "Verificação de assinatura do APK de debug (esperado: certificado não-default / alinhado ao Espresso CI):"
-              VERIFY_OUT="$("$BT/apksigner" verify --print-certs "$APK_PATH" 2>/dev/null || true)"
-              echo "$VERIFY_OUT" | head -25 || true
-              DEF_SIG=""
-              if echo "$VERIFY_OUT" | grep -Fiq "default certificate"; then
-                DEF_SIG=1
-              fi
-              if echo "$VERIFY_OUT" | grep -Eiq "CN=Android Debug"; then
-                DEF_SIG=1
-              fi
-              if [ -n "$DEF_SIG" ]; then
-                echo ""
-                echo "ERRO: app-debug.apk parece assinado com certificado DEBUG PADRÃO (Appium diverge do Espresso com keystore CI). Confira ORG_GRADLE_PROJECT_ciSharedDebugKeystorePath / -PciSharedDebug* e app/build.gradle.kts."
-                exit 1
-              fi
+            if [ -z "$BT" ] || [ ! -x "$BT/apksigner" ]; then
+              echo "Android SDK build-tools não contém apksigner (ANDROID_SDK_ROOT=$SDK_CI)."
+              exit 1
+            fi
+            # Gradle/AGP pode ainda assim gerar APK debug com keystore default; Espresso usa o keystore CI
+            # via espressoBuildConfig. Re-assina para os certificados coincidirem no Appium.
+            echo "Reassinando app-debug.apk com o keystore CI (alinhamento ao servidor Espresso)..."
+            TMP_APK="$(mktemp "${TMPDIR:-/tmp}/app-debug-resign.XXXXXX")"
+            cp -f "$APK_PATH" "$TMP_APK"
+            SIGN_OK=""
+            if "$BT/apksigner" sign --ks "$KEYSTORE_DECODE_PATH" \
+              --ks-pass "pass:${KEYSTORE_PASSWORD}" \
+              --ks-key-alias "${KEY_ALIAS}" \
+              --key-pass "pass:${KEY_PASSWORD}" \
+              --out "$APK_PATH" \
+              "$TMP_APK"; then
+              SIGN_OK=1
+            fi
+            rm -f "$TMP_APK"
+            if [ -z "$SIGN_OK" ]; then
+              echo "apksigner sign falhou; confira alias/senhas do keystore Codemagic."
+              exit 1
+            fi
+            echo "Verificação de assinatura do APK de debug (esperado: certificado não-default / alinhado ao Espresso CI):"
+            VERIFY_OUT="$("$BT/apksigner" verify --print-certs "$APK_PATH" 2>/dev/null || true)"
+            echo "$VERIFY_OUT" | head -25 || true
+            DEF_SIG=""
+            if echo "$VERIFY_OUT" | grep -Fiq "default certificate"; then
+              DEF_SIG=1
+            fi
+            if echo "$VERIFY_OUT" | grep -Eiq "CN=Android Debug"; then
+              DEF_SIG=1
+            fi
+            if [ -n "$DEF_SIG" ]; then
+              echo ""
+              echo "ERRO: app-debug.apk parece assinado com certificado DEBUG PADRÃO após resign (confira alias/senha do mesmo .jks usado pelo Espresso)."
+              exit 1
             fi
           fi
           echo "APK_PATH=$APK_PATH" >> "$CM_ENV"

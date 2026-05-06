@@ -20,7 +20,7 @@ index 33c8d67..cff4c30 100644
 @@ -111,12 +114,17 @@ public class AndroidDriverManager {
  
          options.setApp(DriverTestConfig.appiumAppPath());
-         options.setCapability("appium:forceAppiumRebuild", true);
+         options.setCapability("appium:forceEspressoRebuild", true);
 +        options.setCapability("appium:showGradleLog", true);
          options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  

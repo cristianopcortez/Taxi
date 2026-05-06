@@ -13,6 +13,9 @@
 #   config/.ci-espresso-keystore.path no passo de build como fallback estável entre steps.
 #   O assembleDebug passa -PciSharedDebugKeystorePath=... (-P também para store/alias/password)
 #   para o Gradle alinhar assinatura ao Espresso quando env/daemon falham só com variáveis.
+#   Mesmo assim, quando há KEYSTORE_BASE64, o APK usado pelo Maven é app-e2e-debug.apk: resign explícito
+#   via apksigner + verificação do SHA-256 (Appium adb trata como “default” se bater DEFAULT_CERT_HASH
+#   de appium-adb — o mesmo fingerprint do debug keystore do Android SDK — e o servidor Espresso fica mismatch).
 #   Grupos da UI (Environment variables) precisam ser importados em environment.groups — ver doc Codemagic.
 #   Após clone, aplica-se ci/e2e-appium-http-timeout.patch no repo de testes (HTTP read timeout do
 #   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
@@ -119,43 +122,72 @@ workflows:
               echo "Android SDK build-tools não contém apksigner (ANDROID_SDK_ROOT=$SDK_CI)."
               exit 1
             fi
-            # Gradle/AGP pode ainda assim gerar APK debug com keystore default; Espresso usa o keystore CI
-            # via espressoBuildConfig. Re-assina para os certificados coincidirem no Appium.
-            echo "Reassinando app-debug.apk com o keystore CI (alinhamento ao servidor Espresso)..."
+            # Gradle/AGP pode ainda assim gerar APK debug com certificado SDK (SHA-256 conhecido);
+            # Appium adb classifica como "default certificate". O servidor Espresso (Gradle + espressoBuildConfig)
+            # assina com o .jks CI → mismatch. Gravamos um APK separado para E2E (evita sobrescrever output Gradle).
+            E2E_APK="$CM_BUILD_DIR/app/build/outputs/apk/debug/app-e2e-debug.apk"
+            echo "Assinando cópia dedicada para E2E: $E2E_APK (keystore CI = mesmo do Espresso)..."
+            mkdir -p "$(dirname "$E2E_APK")"
             TMP_APK="$(mktemp "${TMPDIR:-/tmp}/app-debug-resign.XXXXXX")"
             cp -f "$APK_PATH" "$TMP_APK"
-            SIGN_OK=""
-            if "$BT/apksigner" sign --ks "$KEYSTORE_DECODE_PATH" \
+            if ! "$BT/apksigner" sign --ks "$KEYSTORE_DECODE_PATH" \
               --ks-pass "pass:${KEYSTORE_PASSWORD}" \
               --ks-key-alias "${KEY_ALIAS}" \
               --key-pass "pass:${KEY_PASSWORD}" \
-              --out "$APK_PATH" \
+              --out "$E2E_APK" \
               "$TMP_APK"; then
-              SIGN_OK=1
-            fi
-            rm -f "$TMP_APK"
-            if [ -z "$SIGN_OK" ]; then
+              rm -f "$TMP_APK"
               echo "apksigner sign falhou; confira alias/senhas do keystore Codemagic."
               exit 1
             fi
-            echo "Verificação de assinatura do APK de debug (esperado: certificado não-default / alinhado ao Espresso CI):"
-            VERIFY_OUT="$("$BT/apksigner" verify --print-certs "$APK_PATH" 2>/dev/null || true)"
-            echo "$VERIFY_OUT" | head -25 || true
-            DEF_SIG=""
-            if echo "$VERIFY_OUT" | grep -Fiq "default certificate"; then
-              DEF_SIG=1
-            fi
-            if echo "$VERIFY_OUT" | grep -Eiq "CN=Android Debug"; then
-              DEF_SIG=1
-            fi
-            if [ -n "$DEF_SIG" ]; then
-              echo ""
-              echo "ERRO: app-debug.apk parece assinado com certificado DEBUG PADRÃO após resign (confira alias/senha do mesmo .jks usado pelo Espresso)."
+            rm -f "$TMP_APK"
+            # Appium compara o digest SHA-256 ao hash do debug SDK (ver appium-adb DEFAULT_CERT_HASH), não a string "default certificate".
+            ANDROID_DEBUG_SHA256_HEX="a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc"
+            norm_hex() {
+              printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d ': \n\r\t'
+            }
+            echo "Verificação apksigner (certificados do APK E2E, saída completa):"
+            VERIFY_OUT=""
+            if ! VERIFY_OUT="$("$BT/apksigner" verify --print-certs "$E2E_APK" 2>&1)"; then
+              echo "$VERIFY_OUT"
+              echo "ERRO: apksigner verify falhou para $E2E_APK"
               exit 1
             fi
+            echo "$VERIFY_OUT"
+            APK_DIGEST_LINE="$(echo "$VERIFY_OUT" | grep -Fi "sha-256 digest" | head -1 | sed -E 's/.*[Ss][Hh][Aa]-256[[:space:]]+digest:[[:space:]]*//')"
+            APK_CERT_HEX="$(norm_hex "$APK_DIGEST_LINE")"
+            if [ -z "$APK_CERT_HEX" ]; then
+              echo "ERRO: não foi possível extrair SHA-256 digest do apksigner verify."
+              exit 1
+            fi
+            KS_LIST_OUT=""
+            if ! KS_LIST_OUT="$(keytool -v -list -alias "${KEY_ALIAS}" -keystore "$KEYSTORE_DECODE_PATH" -storepass "${KEYSTORE_PASSWORD}" 2>&1)"; then
+              echo "$KS_LIST_OUT"
+              echo "ERRO: keytool -list falhou (alias/senha do keystore)."
+              exit 1
+            fi
+            KS_SHA_LINE="$(echo "$KS_LIST_OUT" | grep -Ei '^[[:space:]]*SHA256:' | head -1 || true)"
+            KS_CERT_HEX="$(norm_hex "$(echo "$KS_SHA_LINE" | sed -E 's/^[[:space:]]*SHA256:[[:space:]]*//')")"
+            if [ -z "$KS_CERT_HEX" ]; then
+              echo "$KS_LIST_OUT"
+              echo "ERRO: não foi possível extrair SHA256 do keytool."
+              exit 1
+            fi
+            echo "SHA-256 cert (APK E2E): $APK_CERT_HEX"
+            echo "SHA-256 cert (keystore $KEY_ALIAS): $KS_CERT_HEX"
+            echo "Fingerprint debug SDK esperado pelo Appium (deve DIFFER para evitar mismatch com Espresso CI): ${ANDROID_DEBUG_SHA256_HEX}"
+            if [ "$APK_CERT_HEX" != "$KS_CERT_HEX" ]; then
+              echo "ERRO: certificado do APK E2E não coincide com entrada $KEY_ALIAS do keystore."
+              exit 1
+            fi
+            if [ "$APK_CERT_HEX" = "$(norm_hex "$ANDROID_DEBUG_SHA256_HEX")" ]; then
+              echo "ERRO: APK E2E ainda tem o mesmo SHA-256 do certificado DEBUG do SDK (@appium/adb DEFAULT_CERT_HASH)."
+              exit 1
+            fi
+            APK_PATH="$E2E_APK"
           fi
           echo "APK_PATH=$APK_PATH" >> "$CM_ENV"
-          echo "Built APK: $APK_PATH"
+          echo "Built APK for tests: $APK_PATH"
 
       - name: Start Selenium (standalone Chrome)
         script: |
@@ -310,7 +342,8 @@ workflows:
             MVN_CMD="mvn"
           fi
           $MVN_CMD -version
-          # Espresso precisa do mesmo keystore que o app-debug.apk. CM_ENV pode ser sobrescrito por
+          # Espresso precisa do mesmo keystore que o APK em APK_PATH (após CI: tipicamente app-e2e-debug.apk).
+          # CM_ENV pode ser sobrescrito por
           # uma variável vazia KEYSTORE_PATH_IN_CONTAINER no Codemagic; ler path gravado pelo build.
           KEYSTORE_PATH_FILE="$CM_BUILD_DIR/config/.ci-espresso-keystore.path"
           if [ -f "$KEYSTORE_PATH_FILE" ]; then
@@ -326,6 +359,28 @@ workflows:
           if [ ! -f "$KEYSTORE_PATH_IN_CONTAINER" ]; then
             echo "Keystore não encontrado: $KEYSTORE_PATH_IN_CONTAINER"
             exit 1
+          fi
+          # Mesma checagem do Appium: APK de testes não pode usar o SHA-256 do debug SDK quando há keystore CI.
+          ANDROID_DEBUG_SHA256_HEX="a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc"
+          norm_hex_ci() {
+            printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d ': \n\r\t'
+          }
+          if [ "${KEYSTORE_PATH_IN_CONTAINER:-}" != "${HOME}/.android/debug.keystore" ]; then
+            APK_FOR_TEST="${APK_PATH:-}"
+            if [ -n "$APK_FOR_TEST" ] && [ -f "$APK_FOR_TEST" ]; then
+              SDK_CHK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+              BT_CHK="$(ls -d "$SDK_CHK"/build-tools/* 2>/dev/null | sort -V | tail -1)"
+              if [ -x "${BT_CHK:-}/apksigner" ]; then
+                PRE_OUT=""
+                PRE_OUT="$("$BT_CHK/apksigner" verify --print-certs "$APK_FOR_TEST" 2>&1)" || true
+                PRE_LINE="$(echo "$PRE_OUT" | grep -Fi "sha-256 digest" | head -1 | sed -E 's/.*[Ss][Hh][Aa]-256[[:space:]]+digest:[[:space:]]*//')"
+                PRE_HEX="$(norm_hex_ci "$PRE_LINE")"
+                if [ -n "$PRE_HEX" ] && [ "$PRE_HEX" = "$(norm_hex_ci "$ANDROID_DEBUG_SHA256_HEX")" ]; then
+                  echo "ERRO pré-Maven: $APK_FOR_TEST usa certificado DEBUG do SDK (SHA-256); Espresso espera keystore CI. Confira Build debug APK (app-e2e-debug.apk)."
+                  exit 1
+                fi
+              fi
+            fi
           fi
           # Repo de testes: DriverTestConfig lê appium.app (Surefire) e SELENIUM_REMOTE_URL.
           # O perfil dockerized-web define default /home/androidusr/... para Docker local; aqui

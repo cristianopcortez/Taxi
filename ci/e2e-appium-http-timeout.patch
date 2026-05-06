@@ -1,5 +1,5 @@
 diff --git a/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java b/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
-index 33c8d67..f3895fc 100644
+index 33c8d67..cff4c30 100644
 --- a/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
 +++ b/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
 @@ -4,11 +4,14 @@ import br.com.ccortez.config.DriverTestConfig;
@@ -17,7 +17,12 @@ index 33c8d67..f3895fc 100644
  /**
   * Creates and manages the AndroidDriver used by the UI tests.
   *
-@@ -115,8 +118,12 @@ public class AndroidDriverManager {
+@@ -111,12 +114,17 @@ public class AndroidDriverManager {
+ 
+         options.setApp(DriverTestConfig.appiumAppPath());
+         options.setCapability("appium:forceAppiumRebuild", true);
++        options.setCapability("appium:showGradleLog", true);
+         options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  
          options.setNewCommandTimeout(Duration.ofSeconds(300));
  
@@ -27,7 +32,7 @@ index 33c8d67..f3895fc 100644
 +        ClientConfig clientConfig = ClientConfig.defaultConfig()
 +                .baseUri(URI.create(validatedServerUrl.toString()))
 +                .connectionTimeout(Duration.ofMinutes(5))
-+                .readTimeout(Duration.ofMinutes(45));
++                .readTimeout(Duration.ofMinutes(90));
 +        driver = new AndroidDriver(clientConfig, options);
  
          // Enable Jetpack Compose element handling in the Espresso driver.

@@ -1,8 +1,8 @@
 diff --git a/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java b/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
-index 33c8d67..cff4c30 100644
+index 33c8d67..8588cfc 100644
 --- a/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
 +++ b/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
-@@ -3,11 +3,14 @@ import br.com.ccortez.config.DriverTestConfig;
+@@ -4,11 +4,14 @@ import br.com.ccortez.config.DriverTestConfig;
  import io.appium.java_client.android.AndroidDriver;
  import io.appium.java_client.android.options.UiAutomator2Options;
  
@@ -17,15 +17,55 @@ index 33c8d67..cff4c30 100644
  /**
   * Creates and manages the AndroidDriver used by the UI tests.
   *
-@@ -107,16 +110,45 @@
-         options.setDeviceName(DEVICE_NAME);
-         options.setUdid(UDID);
-         options.setPlatformVersion(PLATFORM_VERSION);
+@@ -59,7 +62,7 @@ public class AndroidDriverManager {
+      * <p>The test-APK that Appium rebuilds must be signed with the same key
+      * as the app under test, hence the {@code signingConfig} block. The
+      * {@code additionalAndroidTestDependencies} list mirrors the Compose /
+-     * AndroidX versions used by {@code DesafioShopperAppTaxi} (1.7.5).</p>
++     * AndroidX versions used by {@code DesafioShopperAppTaxi} (Compose 1.11, Navigation 2.9).</p>
+      *
+      * <p>We intentionally omit {@code toolsVersions} ({@code gradle},
+      * {@code androidGradlePlugin}, etc.): the Espresso server is built from the
+@@ -79,21 +82,21 @@
+             +     "\"keyPassword\":\"" + KEY_PASSWORD + "\""
+             + "},"
+             + "\"additionalAndroidTestDependencies\":["
+-            +     "\"androidx.activity:activity:1.9.0\","
+-            +     "\"androidx.activity:activity-compose:1.8.2\","
++            +     "\"androidx.activity:activity:1.10.1\","
++            +     "\"androidx.activity:activity-compose:1.10.1\","
+             +     "\"androidx.lifecycle:lifecycle-extensions:2.2.0\","
+             +     "\"androidx.fragment:fragment:1.5.1\","
+-            +     "\"androidx.compose.ui:ui:1.7.5\","
+-            +     "\"androidx.compose.ui:ui-graphics:1.7.5\","
+-            +     "\"androidx.compose.ui:ui-tooling:1.7.5\","
+-            +     "\"androidx.compose.ui:ui-tooling-preview:1.7.5\","
+-            +     "\"androidx.compose.material:material:1.7.5\","
+-            +     "\"androidx.compose.material3:material3:1.3.1\","
+-            +     "\"androidx.compose.runtime:runtime:1.7.5\","
+-            +     "\"androidx.compose.runtime:runtime-android:1.7.5\","
+-            +     "\"androidx.navigation:navigation-compose:2.7.7\","
+-            +     "\"androidx.compose.ui:ui-test-junit4:1.7.5\","
+-            +     "\"androidx.compose.ui:ui-test-manifest:1.7.5\""
++            +     "\"androidx.compose.ui:ui:1.11.0\","
++            +     "\"androidx.compose.ui:ui-graphics:1.11.0\","
++            +     "\"androidx.compose.ui:ui-tooling:1.11.0\","
++            +     "\"androidx.compose.ui:ui-tooling-preview:1.11.0\","
++            +     "\"androidx.compose.material:material:1.11.0\","
++            +     "\"androidx.compose.material3:material3:1.4.0\","
++            +     "\"androidx.compose.runtime:runtime:1.11.0\","
++            +     "\"androidx.compose.runtime:runtime-android:1.11.0\","
++            +     "\"androidx.navigation:navigation-compose:2.9.0\","
++            +     "\"androidx.compose.ui:ui-test-junit4:1.11.0\","
++            +     "\"androidx.compose.ui:ui-test-manifest:1.11.0\""
+             + "]"
+             + "}";
+ 
+@@ -110,13 +114,42 @@ public class AndroidDriverManager {
          options.setCapability("appium:deviceName", DEVICE_NAME);
  
          options.setApp(DriverTestConfig.appiumAppPath());
 -        options.setCapability("appium:forceAppiumRebuild", true);
--        options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
 +        options.setCapability("appium:forceEspressoRebuild", true);
 +        options.setCapability("appium:showGradleLog", true);
 +
@@ -52,7 +92,7 @@ index 33c8d67..cff4c30 100644
 +        if (platformVersionOverride != null && !platformVersionOverride.isBlank()) {
 +            options.setCapability("appium:platformVersion", platformVersionOverride.trim());
 +        }
-+        options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
+         options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  
          options.setNewCommandTimeout(Duration.ofSeconds(300));
  

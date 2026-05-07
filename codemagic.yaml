@@ -20,7 +20,9 @@
 #   Após clone, aplica-se ci/e2e-appium-http-timeout.patch no repo de testes (HTTP read timeout do
 #   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
 #   AndroidDriverManager.java do repositório de testes divergir. Patch: ClientConfig read timeout,
-#   appium:forceEspressoRebuild, appium:showGradleLog, appium:noSign (não re-assina o AUT).
+#   appium:forceEspressoRebuild, appium:showGradleLog, appium:noSign (não re-assina o AUT),
+#   e additionalAndroidTestDependencies alinhadas ao app (evita NoSuchMethodError em NavHostKt / classpath
+#   do APK do servidor Espresso vs o AUT).
 #   Com KEYSTORE_PATH_IN_CONTAINER + KEYSTORE_PASSWORD + KEY_ALIAS + KEY_PASSWORD no ambiente Maven,
 #   o patch define appium:useKeystore e appium:keystore* — o APK do servidor Espresso (gerado em /tmp
 #   pelo driver) deve ser assinado com a mesma chave do app; apenas espressoBuildConfig.signingConfig
@@ -247,6 +249,8 @@ workflows:
             && grep -q "appium:noSign" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             && grep -q "useKeystore" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             && grep -q "keystorePath" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
+            && grep -q "navigation-compose:2.9.0" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
+            && grep -q "androidx.compose.ui:ui:1.11.0" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             || { echo "Patch parece não ter sido aplicado ao AndroidDriverManager"; exit 1; }
 
       - name: Appium, AVD e boot do emulador

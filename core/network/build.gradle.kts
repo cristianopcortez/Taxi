@@ -15,7 +15,20 @@ val properties = Properties().apply {
     }
 }
 
-val API_BASE_URL: String = properties.getProperty("API_BASE_URL", "")
+// Never interpolate `properties[key]` raw: missing keys yield Kotlin "null" in the string → invalid Retrofit baseUrl at runtime (E2E/CI crash).
+private fun sanitizeApiBaseUrl(raw: String?): String {
+    val t = raw?.trim().orEmpty()
+    if (t.isEmpty()) return ""
+
+    val noScheme =
+        !(t.startsWith("http://", ignoreCase = true) || t.startsWith("https://", ignoreCase = true))
+    val withScheme =
+        if (noScheme) "https://$t" else t
+    return withScheme.trimEnd('/') + '/'
+}
+
+val apiBaseUrlForBuildConfig: String = sanitizeApiBaseUrl(properties.getProperty("API_BASE_URL"))
+    .ifEmpty { "https://example.com/" }
 
 android {
     namespace = "br.com.ccortez.core.network"
@@ -31,10 +44,12 @@ android {
     buildTypes {
         debug {
             android.buildFeatures.buildConfig = true
-            buildConfigField("String", "API_BASE_URL", "\"${properties["API_BASE_URL"]}\"")
+            buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrlForBuildConfig\"")
         }
         release {
             isMinifyEnabled = false
+            android.buildFeatures.buildConfig = true
+            buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrlForBuildConfig\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

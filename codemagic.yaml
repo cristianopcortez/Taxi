@@ -17,6 +17,9 @@
 #   via apksigner + verificação do SHA-256 (Appium adb trata como “default” se bater DEFAULT_CERT_HASH
 #   de appium-adb — o mesmo fingerprint do debug keystore do Android SDK — e o servidor Espresso fica mismatch).
 #   Grupos da UI (Environment variables) precisam ser importados em environment.groups — ver doc Codemagic.
+#   secrets.properties (opcional): o passo Prepare Android SDK monta esse ficheiro a partir das env Codemagic
+#   quando há API_BASE_URL e/ou MAPS_API_KEY. API_BASE_URL → BuildConfig em core/network. MAPS_API_KEY → plug-in
+#   mapsSecrets (feature/taxi_travel_options/ui) / AndroidManifest geo API_KEY — marcar MAPS_API_KEY como secret.
 #   Após clone, aplica-se ci/e2e-appium-http-timeout.patch no repo de testes (HTTP read timeout do
 #   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
 #   AndroidDriverManager.java do repositório de testes divergir. Patch: ClientConfig read timeout,
@@ -64,6 +67,12 @@ workflows:
           set -e
           SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           echo "sdk.dir=$SDK" > "$CM_BUILD_DIR/local.properties"
+          if [ -n "${API_BASE_URL:-}" ] || [ -n "${MAPS_API_KEY:-}" ]; then
+            # secrets.properties está no .gitignore; em CI preenchemos a partir do env (README / mapsSecrets plugin).
+            : >"$CM_BUILD_DIR/secrets.properties"
+            [ -n "${API_BASE_URL:-}" ] && printf 'API_BASE_URL=%s\n' "$API_BASE_URL" >>"$CM_BUILD_DIR/secrets.properties"
+            [ -n "${MAPS_API_KEY:-}" ] && printf 'MAPS_API_KEY=%s\n' "$MAPS_API_KEY" >>"$CM_BUILD_DIR/secrets.properties"
+          fi
 
       - name: Build debug APK
         script: |

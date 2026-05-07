@@ -21,12 +21,14 @@
 #   java-client durante o rebuild do Espresso; evita “socket hang up”). Atualize o patch se o arquivo
 #   AndroidDriverManager.java do repositório de testes divergir. Patch: ClientConfig read timeout,
 #   appium:forceEspressoRebuild, appium:showGradleLog, appium:noSign (não re-assina o AUT),
-#   e additionalAndroidTestDependencies alinhadas ao app (evita NoSuchMethodError em NavHostKt / classpath
-#   do APK do servidor Espresso vs o AUT).
+#   toolsVersions.compileSdk/targetSdk 36, e additionalAndroidTestDependencies alinhadas ao app
+#   (evita NoSuchMethodError / AAR metadata mismatch no rebuild do servidor Espresso vs o AUT).
 #   Com KEYSTORE_PATH_IN_CONTAINER + KEYSTORE_PASSWORD + KEY_ALIAS + KEY_PASSWORD no ambiente Maven,
 #   o patch define appium:useKeystore e appium:keystore* — o APK do servidor Espresso (gerado em /tmp
 #   pelo driver) deve ser assinado com a mesma chave do app; apenas espressoBuildConfig.signingConfig
 #   não garante isso. No Appium da VM: --keep-alive-timeout / --request-timeout.
+#   toolsVersions.compileSdk/targetSdk 36 evita falha checkDebugAndroidTestAarMetadata (AndroidX requer compileSdk ≥ 35);
+#   instalamos também platforms;android-36 antes do servidor Espresso compilar via Gradle.
 
 workflows:
   full-stack-e2e:
@@ -251,6 +253,7 @@ workflows:
             && grep -q "keystorePath" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             && grep -q "navigation-compose:2.9.0" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             && grep -q "androidx.compose.ui:ui:1.11.0" tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
+            && grep -Fq 'compileSdk\":36' tests_project/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java \
             || { echo "Patch parece não ter sido aplicado ao AndroidDriverManager"; exit 1; }
 
       - name: Appium, AVD e boot do emulador
@@ -285,14 +288,14 @@ workflows:
           npm install -g appium
           # Test project uses automationName espresso (not only UiAutomator2).
           appium driver install uiautomator2
-          # Espresso driver 8.x builds espresso-server with bundled Gradle 9 + AGP 9; the
-          # test suite no longer pins Gradle/AGP in espressoBuildConfig to the app’s AGP.
+          # Espresso driver 8.x builds espresso-server with bundled Gradle + AGP. The test patch sets
+          # toolsVersions.compileSdk/targetSdk only (aligned to the app's API 36) — avoids clashing AGP pins.
           appium driver install espresso
           appium driver list --installed
 
           # Licenças + imagem do sistema (API 33 alinhada a minSdk/target comuns; ajuste se o repositório de testes exigir outra API)
           yes | "$SDKMANAGER" --licenses >/dev/null
-          "$SDKMANAGER" "platform-tools" "platforms;android-33" "emulator" "system-images;android-33;google_apis;x86_64"
+          "$SDKMANAGER" "platform-tools" "platforms;android-33" "platforms;android-36" "emulator" "system-images;android-33;google_apis;x86_64"
 
           echo "no" | "$AVDMANAGER" create avd -n cm_test_device -k "system-images;android-33;google_apis;x86_64" --force
 

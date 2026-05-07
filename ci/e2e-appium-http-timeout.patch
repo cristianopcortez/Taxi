@@ -2,7 +2,7 @@ diff --git a/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java b/sr
 index 33c8d67..cff4c30 100644
 --- a/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
 +++ b/src/main/java/br/com/ccortez/drivers/AndroidDriverManager.java
-@@ -3,12 +3,15 @@ import br.com.ccortez.config.DriverTestConfig;
+@@ -3,11 +3,14 @@ import br.com.ccortez.config.DriverTestConfig;
  import io.appium.java_client.android.AndroidDriver;
  import io.appium.java_client.android.options.UiAutomator2Options;
  
@@ -18,12 +18,12 @@ index 33c8d67..cff4c30 100644
   * Creates and manages the AndroidDriver used by the UI tests.
   *
 @@ -107,16 +110,45 @@
-        options.setDeviceName(DEVICE_NAME);
-        options.setUdid(UDID);
-        options.setPlatformVersion(PLATFORM_VERSION);
-        options.setCapability("appium:deviceName", DEVICE_NAME);
-
-        options.setApp(DriverTestConfig.appiumAppPath());
+         options.setDeviceName(DEVICE_NAME);
+         options.setUdid(UDID);
+         options.setPlatformVersion(PLATFORM_VERSION);
+         options.setCapability("appium:deviceName", DEVICE_NAME);
+ 
+         options.setApp(DriverTestConfig.appiumAppPath());
 -        options.setCapability("appium:forceAppiumRebuild", true);
 -        options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
 +        options.setCapability("appium:forceEspressoRebuild", true);
@@ -54,7 +54,7 @@ index 33c8d67..cff4c30 100644
 +        }
 +        options.setCapability("appium:espressoBuildConfig", ESPRESSO_BUILD_CONFIG_JSON);
  
-        options.setNewCommandTimeout(Duration.ofSeconds(300));
+         options.setNewCommandTimeout(Duration.ofSeconds(300));
  
 -        URL appiumServerUrl = new URL(APPIUM_URL);
 -        driver = new AndroidDriver(appiumServerUrl, options);
@@ -65,5 +65,5 @@ index 33c8d67..cff4c30 100644
 +                .readTimeout(Duration.ofMinutes(90));
 +        driver = new AndroidDriver(clientConfig, options);
  
-        // Enable Jetpack Compose element handling in the Espresso driver.
-        driver.setSetting("driver", "compose");
+         // Enable Jetpack Compose element handling in the Espresso driver.
+         driver.setSetting("driver", "compose");

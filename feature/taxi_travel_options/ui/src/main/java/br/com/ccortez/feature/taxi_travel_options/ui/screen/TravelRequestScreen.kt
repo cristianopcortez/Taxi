@@ -87,9 +87,6 @@ fun TravelRequestScreen(
                 }
                 Button(
                     onClick = {
-                        viewModel.setQueryUserId("1")
-                        viewModel.setQueryOriginAddress("Av. Brasil, 2033 - Jardim America, São Paulo - SP, 01431-001")
-                        viewModel.setQueryDestinyAddress("Av. Paulista, 1538 - Bela Vista, São Paulo - SP, 01310-200")
                         navController.navigate(
                             "rider_options/${Uri.encode(viewModel.userId.value)}/${Uri.encode(viewModel.originAddress.value)}/${Uri.encode(viewModel.destinyAddress.value)}"
                         )

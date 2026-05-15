@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        
+        <!-- O seu endpoint específico da AWS -->
+        <domain includeSubdomains="true">xd5zl5kk2yltomvw5fb37y3bm40vsyrx.lambda-url.sa-east-1.on.aws</domain>
+        
+        <!-- Opcional: Adicione o domínio base da AWS se tiver múltiplos lambdas -->
+        <!-- <domain includeSubdomains="true">lambda-url.sa-east-1.on.aws</domain> -->
+
+        <!-- Expiração definida para o longo prazo, forçando revisão periódica -->
+        <pin-set expiration="2027-12-31">
+            
+            <!-- Pin Principal: Amazon Intermediate CA (Amazon RSA 2048 M02) -->
+            <pin digest="SHA-256">x9SZw6twIqfmZ/SQSHGsnH+Rz2B6H5b5Y+5A5z7eD1s=</pin>
+            
+            <!-- Pin Backup: Amazon Root CA 1 (Garante funcionamento se a intermediária mudar) -->
+            <pin digest="SHA-256">++MBgDH5WGvL9Bcn5eYB+U12NAsLIPoE0Ea+1B2KxA8=</pin>
+            
+        </pin-set>
+    </domain-config>
+
+    <!-- Habilita inspecção via Appium/Charles Proxy APENAS em builds de Debug -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

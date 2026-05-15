@@ -28,6 +28,7 @@ The project was developed with a focus on Android architecture best practices, s
 - [x] Ride history per user (with driver filter)
 - [x] Native splash screen
 - [x] Network error handling and user feedback
+- [x] TLS certificate pinning for the API host (Network Security Config, `feature/certificate-pinning-ca`)
 
 ---
 
@@ -91,6 +92,26 @@ Backend communication is handled via **Retrofit** against a configurable REST AP
 | `POST` | `/ride/estimate` | Estimates prices and available drivers |
 | `PATCH` | `/ride/confirm` | Confirms the selected ride |
 | `GET` | `/ride/{customer_id}` | User ride history |
+
+---
+
+## 🔒 TLS certificate pinning
+
+Work related to **`feature/certificate-pinning-ca`**: HTTPS traffic to the configured backend host is constrained using Android [**Network Security Configuration**](https://developer.android.com/privacy-and-security/security-config).
+
+| Item | Detail |
+|------|--------|
+| Config file | [`app/src/main/res/xml/network_security_config.xml`](app/src/main/res/xml/network_security_config.xml) |
+| Manifest wiring | `android:networkSecurityConfig="@xml/network_security_config"` on the `<application>` element in [`app/src/main/AndroidManifest.xml`](app/src/main/AndroidManifest.xml) |
+
+What this setup does:
+
+- **Domain scope:** The exact AWS Lambda Function URL hostname declared in [`network_security_config.xml`](app/src/main/res/xml/network_security_config.xml), with `includeSubdomains="true"` so **subdomains of that host** are covered as well (not every `*.lambda-url.sa-east-1.on.aws` URL—add more `<domain>` entries if you use additional Function URLs).
+- **Certificate pins:** A `<pin-set>` with **SHA-256 SPKI pins** (primary intermediate + backup root), plus an **`expiration`** date so pins must be reviewed periodically before they stop enforcing.
+- **Cleartext:** `cleartextTrafficPermitted="false"` for that domain configuration (HTTPS-only for the pinned host pattern).
+- **Debug builds:** `<debug-overrides>` trusts **user-installed** and **system** CAs so tools such as proxies or automated UI runners can inspect TLS **only on debug builds**; release builds still honor the pin rules above.
+
+**Operational note:** Keep `API_BASE_URL` in `secrets.properties` aligned with the hostname you pin. If AWS rotates the certificate chain in a way that no longer matches the configured pins, update the pins in `network_security_config.xml` and adjust the expiry as needed.
 
 ---
 

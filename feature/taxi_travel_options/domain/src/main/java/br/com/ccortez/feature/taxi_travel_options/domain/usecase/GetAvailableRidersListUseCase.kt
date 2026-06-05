@@ -45,17 +45,6 @@ open class GetAvailableRidersListUseCase @Inject constructor(private val reposit
 
 }
 
-open class GetRouteResponseUseCase @Inject constructor(private val repository: TaxiTravelOptionsRepository) {
-
-    operator fun invoke(userId: String, originAddress: String, destinyAddress: String) = flow {
-        emit(UiEvents.Loading())
-        emit(UiEvents.Success(repository.getRouteOptions(userId, originAddress, destinyAddress)))
-    }.catch {
-        emit(UiEvents.Error(it.message.toString()))
-    }.flowOn(Dispatchers.IO)
-
-}
-
 open class GetRideConfirmUseCase @Inject constructor(private val repository: TaxiTravelOptionsRepository) {
 
     operator fun invoke(customerId: String, originAddress: String, destinyAddress: String,

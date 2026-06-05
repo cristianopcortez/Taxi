@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -26,6 +27,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.StrokeStyle
+import com.google.android.gms.maps.model.StyleSpan
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.ComposeMapColorScheme
@@ -41,6 +44,19 @@ import com.google.maps.android.compose.Polygon
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+
+private val singapore = LatLng(1.3588227, 103.8742114)
+private val singapore2 = LatLng(1.40, 103.77)
+private val singapore3 = LatLng(1.45, 103.77)
+private val singapore4 = LatLng(1.50, 103.77)
+private val singapore5 = LatLng(1.3418, 103.8461)
+
+private val styleSpan = StyleSpan(
+    StrokeStyle.gradientBuilder(
+        Color.Red.toArgb(),
+        Color.Green.toArgb(),
+    ).build(),
+)
 
 @Composable
 fun StepGoogleMapView(

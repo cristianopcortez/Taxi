@@ -20,24 +20,16 @@ import com.google.android.gms.maps.MapView
 fun RouteMapScreen(_driverId: String, viewModel: RequestRideViewModel, _navController: NavController) {
     val context = LocalContext.current
 
-    val resultRiderRoutes = viewModel.routeResponse.value
-
-    viewModel.setQueryUserId("1")
-    viewModel.setQueryOriginAddress("Av. Brasil, 2033 - Jardim America, São Paulo - SP, 01431-001")
-    viewModel.setQueryDestinyAddress("Av. Paulista, 1538 - Bela Vista, São Paulo - SP, 01310-200")
-    viewModel.setQuery("abcd")
+    val combinedResult = viewModel.combinedResponse.value
 
     val mapView = remember {
-        MapView(context).apply {
-            // ... Configure the map here, similar to the previous approach
-        }
+        MapView(context).apply { }
     }
 
     AndroidView(factory = { mapView })
 
-    resultRiderRoutes.data?.let {
-
-        val routeResponse = resultRiderRoutes.data.routeResponse
+    combinedResult.data?.let { combined ->
+        val routeResponse = combined.routeResponse
 
         AndroidView(factory = { _ ->
             mapView.apply {
@@ -46,19 +38,19 @@ fun RouteMapScreen(_driverId: String, viewModel: RequestRideViewModel, _navContr
                         uiSettings.isZoomControlsEnabled = true
                         uiSettings.isMyLocationButtonEnabled = true
 
-                        // Add markers for start and end locations
+                        val leg = routeResponse.routes[0].legs[0]
                         val startLatLng = LatLng(
-                            routeResponse.routes[0].legs[0].startLocation.latLng.latitude,
-                            routeResponse.routes[0].legs[0].startLocation.latLng.longitude
+                            leg.startLocation.latLng.latitude,
+                            leg.startLocation.latLng.longitude
                         )
                         val endLatLng = LatLng(
-                            routeResponse.routes[0].legs[0].endLocation.latLng.latitude,
-                            routeResponse.routes[0].legs[0].endLocation.latLng.longitude
+                            leg.endLocation.latLng.latitude,
+                            leg.endLocation.latLng.longitude
                         )
                         googleMap.addMarker(MarkerOptions().position(startLatLng).title("Start"))
                         googleMap.addMarker(MarkerOptions().position(endLatLng).title("End"))
 
-                        for (step in routeResponse.routes[0].legs[0].steps) {
+                        for (step in leg.steps) {
                             val polylineOptions = PolylineOptions()
                                 .addAll(decodePolyline(step.polyline.encodedPolyline))
                                 .color(Color.Blue.toArgb())
@@ -66,7 +58,6 @@ fun RouteMapScreen(_driverId: String, viewModel: RequestRideViewModel, _navContr
                             googleMap.addPolyline(polylineOptions)
                         }
 
-                        // Center the map on the route
                         val bounds = LatLngBounds.builder()
                             .include(startLatLng)
                             .include(endLatLng)

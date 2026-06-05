@@ -87,6 +87,7 @@ fun TravelRequestScreen(
                 }
                 Button(
                     onClick = {
+                        viewModel.saveCurrentSearch()
                         navController.navigate(
                             "rider_options/${Uri.encode(viewModel.userId.value)}/${Uri.encode(viewModel.originAddress.value)}/${Uri.encode(viewModel.destinyAddress.value)}"
                         )

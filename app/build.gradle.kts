@@ -128,6 +128,7 @@ dependencies {
     // Core Common
     implementation(project(":core:common"))
     implementation(project(":core:feature"))
+    implementation(project(":core:datastore"))
 
     // Feature Taxi Travel Options
     implementation(project(":feature:taxi_travel_options:ui"))

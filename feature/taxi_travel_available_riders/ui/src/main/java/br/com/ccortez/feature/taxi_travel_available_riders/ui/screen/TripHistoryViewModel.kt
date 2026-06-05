@@ -6,17 +6,20 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.ccortez.core.common.UiEvents
+import br.com.ccortez.core.datastore.UserPreferencesRepository
 import br.com.ccortez.feature.taxi_travel_available_riders.domain.usecase.GetTripHistoryListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class TripHistoryViewModel @Inject constructor(
     private val getTripHistoryListUseCase: GetTripHistoryListUseCase,
-    _savedStateHandle: SavedStateHandle
+    _savedStateHandle: SavedStateHandle,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val _tripHistory = mutableStateOf(CustomerStateHolder())
@@ -29,6 +32,13 @@ class TripHistoryViewModel @Inject constructor(
     val userId: StateFlow<String> get() = _userId
     val driverId: StateFlow<String> get() = _driverId
 
+    init {
+        viewModelScope.launch {
+            _userId.value = userPreferencesRepository.lastUserId.first()
+            _driverId.value = userPreferencesRepository.lastDriverId.first()
+        }
+    }
+
     fun setQueryUserId(userId: String) {
         _userId.value = userId
     }
@@ -39,6 +49,10 @@ class TripHistoryViewModel @Inject constructor(
 
     fun setQuery(query: String) {
         _query.value = query
+        viewModelScope.launch {
+            userPreferencesRepository.saveLastUserId(_userId.value)
+            userPreferencesRepository.saveLastDriverId(_driverId.value)
+        }
         getTripHistoryList(_userId.value, _driverId.value)
     }
 

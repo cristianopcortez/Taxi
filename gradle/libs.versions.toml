@@ -52,6 +52,7 @@ play-services-maps = "18.2.0"
 mapsecrets = "2.0.1"
 mannodermaus-junit5 = "1.3.0"
 mockk = "1.13.8"
+datastore = "1.1.1"
 
 [libraries]
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -118,6 +119,7 @@ maps-secrets-plugin = { module = "com.google.android.libraries.mapsplatform.secr
 mannodermaus-android-test-core = { module = "de.mannodermaus.junit5:android-test-core", version.ref = "mannodermaus-junit5" }
 mannodermaus-android-test-runner = { module = "de.mannodermaus.junit5:android-test-runner", version.ref = "mannodermaus-junit5" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

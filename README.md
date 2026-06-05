@@ -29,6 +29,7 @@ The project was developed with a focus on Android architecture best practices, s
 - [x] Native splash screen
 - [x] Network error handling and user feedback
 - [x] TLS certificate pinning for the API host (Network Security Config, `feature/certificate-pinning-ca`)
+- [x] Persistent local preferences via Jetpack DataStore (last user ID, addresses, driver filter, theme)
 
 ---
 
@@ -41,6 +42,7 @@ The project was developed with a focus on Android architecture best practices, s
 | Navigation | Navigation Compose |
 | Dependency Injection | Hilt |
 | Networking | Retrofit 2 + OkHttp 4 + Gson |
+| Local Storage | Jetpack DataStore (Preferences) |
 | Maps | Maps Compose + Google Maps SDK |
 | Image Loading | Coil |
 | Build | Gradle 8.7 + Version Catalog (TOML) |
@@ -55,9 +57,10 @@ The project follows **Clean Architecture** principles with a **multi-module** st
 
 ```
 Taxi/
-├── app/                             # Main module (Activity, NavGraph, Theme)
+├── app/                             # Main module (Activity, NavGraph, Theme, ThemeViewModel)
 ├── core/
 │   ├── common/                      # Shared utilities, navigation constants
+│   ├── datastore/                   # Preferences DataStore: UserPreferencesRepository + Hilt module
 │   ├── feature/                     # FeatureApi interface for navigation graphs
 │   └── network/                     # ApiService, DTOs, NetworkModule (Hilt)
 └── feature/
@@ -165,11 +168,34 @@ Tools used: **JUnit 5**, **MockK**, **Mockito**, **Robolectric**, **Compose UI T
 
 ---
 
+## 💾 Preferences DataStore
+
+The `core:datastore` module provides persistent local storage using **Jetpack DataStore (Preferences)**, replacing the need for `SharedPreferences` anywhere in the app.
+
+| Key | Type | Persisted when |
+|-----|------|----------------|
+| `last_user_id` | `String` | User taps the ride request button |
+| `last_origin_address` | `String` | User taps the ride request button |
+| `last_destiny_address` | `String` | User taps the ride request button |
+| `last_driver_id` | `String` | User triggers a trip history search |
+| `theme_mode` | `String` (`SYSTEM` / `LIGHT` / `DARK`) | App theme is changed via `ThemeViewModel` |
+
+**How it works:**
+- `UserPreferencesRepository` — interface consumed by ViewModels.
+- `UserPreferencesRepositoryImpl` — DataStore-backed implementation.
+- `DataStoreModule` — Hilt `@Singleton` provider using `PreferenceDataStoreFactory`.
+- `TravelOptionsViewModel` pre-fills the search fields from DataStore on startup and auto-triggers the last search if all three fields have saved values.
+- `TripHistoryViewModel` restores the last `userId` and `driverId` filter on startup.
+- `ThemeViewModel` (in `app`) exposes `themeMode: StateFlow<ThemeMode>`, consumed by `MainActivity` → `TaxiTheme`.
+
+---
+
 ## 📂 Key Technical Decisions
 
 - **Multi-module:** each feature has its own `data`, `domain`, and `ui` modules, improving scalability and incremental build times.
 - **Version Catalog (TOML):** centralizes all dependency versions in `gradle/libs.versions.toml`.
-- **Hilt:** dependency injection across all modules, with `NetworkModule` providing Retrofit globally.
+- **Hilt:** dependency injection across all modules, with `NetworkModule` providing Retrofit and `DataStoreModule` providing `UserPreferencesRepository` globally.
+- **Jetpack DataStore:** `core:datastore` replaces `SharedPreferences` with a type-safe, coroutine-based, `Flow`-backed storage layer.
 - **Secrets Gradle Plugin:** keeps API keys out of version control.
 - **Navigation Compose with FeatureApi:** each feature module exposes its navigation graph via an interface, decoupling the `app` module from implementation details.
 

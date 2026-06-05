@@ -58,6 +58,7 @@ dependencies {
     implementation(project(":feature:taxi_travel_available_riders:domain"))
     implementation(project(":core:feature"))
     implementation(project(":core:common"))
+    implementation(project(":core:datastore"))
 
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.ktx)

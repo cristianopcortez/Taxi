@@ -39,3 +39,6 @@ compose-*.txt
 # Local clone do repo de testes E2E (só para gerar patch; CI clona do TEST_REPO_URL).
 /tmp_native_demo/
 
+
+app/debug/
+.cursor/

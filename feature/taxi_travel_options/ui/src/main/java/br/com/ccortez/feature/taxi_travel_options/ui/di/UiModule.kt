@@ -4,6 +4,8 @@ import br.com.ccortez.feature.taxi_travel_options.ui.navigation.TravelRequestFea
 import br.com.ccortez.feature.taxi_travel_options.ui.navigation.TravelRequestFeatureApiImpl
 import br.com.ccortez.feature.taxi_travel_options.ui.navigation.RiderOptionsApi
 import br.com.ccortez.feature.taxi_travel_options.ui.navigation.RiderOptionsApiImpl
+import br.com.ccortez.feature.taxi_travel_options.ui.navigation.RouteMapApi
+import br.com.ccortez.feature.taxi_travel_options.ui.navigation.RouteMapApiImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,6 +23,11 @@ object UiModule {
     @Provides
     fun provideAvailableRidersApi(): RiderOptionsApi {
         return RiderOptionsApiImpl()
+    }
+
+    @Provides
+    fun provideRouteMapApi(): RouteMapApi {
+        return RouteMapApiImpl()
     }
 
 }

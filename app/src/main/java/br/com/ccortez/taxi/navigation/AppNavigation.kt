@@ -28,5 +28,9 @@ fun AppNavGraph(
             navController,this
         )
 
+        navigationProvider.routeMapApi.registerGraph(
+            navController, this
+        )
+
     }
 }

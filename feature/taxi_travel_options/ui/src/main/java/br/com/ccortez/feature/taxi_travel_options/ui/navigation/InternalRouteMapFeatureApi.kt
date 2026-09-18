@@ -7,7 +7,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import br.com.ccortez.core.FeatureApi
-import br.com.ccortez.core.common.utils.AvailableDriversFeature
 import br.com.ccortez.core.common.utils.RouteMapFeature
 import br.com.ccortez.feature.taxi_travel_options.ui.screen.RequestRideViewModel
 import br.com.ccortez.feature.taxi_travel_options.ui.screen.RouteMapScreen
@@ -18,15 +17,19 @@ internal object InternalRouteMapFeatureApi : FeatureApi {
         navController: NavHostController,
         navGraphBuilder: NavGraphBuilder
     ) {
-        navGraphBuilder.navigation(startDestination = RouteMapFeature.taxiTravelOptionsScreenRoute,
-            route = AvailableDriversFeature.nestedRoute) {
+        navGraphBuilder.navigation(
+            startDestination = RouteMapFeature.taxiTravelOptionsScreenRoute,
+            route = RouteMapFeature.nestedRoute
+        ) {
             composable(
                 RouteMapFeature.taxiTravelOptionsScreenRoute,
                 deepLinks = listOf(navDeepLink { uriPattern = RouteMapFeature.deepLinkRoute })
-            ) {
+            ) { backStackEntry ->
                 val viewModel = hiltViewModel<RequestRideViewModel>()
-                val driverId = it.arguments?.getString("driverId")
-                RouteMapScreen(driverId.toString(), viewModel, navController)
+                val userId = backStackEntry.arguments?.getString("userId").orEmpty()
+                val originAddress = backStackEntry.arguments?.getString("originAddress").orEmpty()
+                val destinyAddress = backStackEntry.arguments?.getString("destinyAddress").orEmpty()
+                RouteMapScreen(userId, originAddress, destinyAddress, viewModel)
             }
         }
     }

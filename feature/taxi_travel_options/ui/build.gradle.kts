@@ -13,6 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 24
+        targetSdk = 36
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["androidx.test.uiautomator.debug.UiAutomatorTimeout"] = "60000" // Increase timeout in milliseconds (default 20000)

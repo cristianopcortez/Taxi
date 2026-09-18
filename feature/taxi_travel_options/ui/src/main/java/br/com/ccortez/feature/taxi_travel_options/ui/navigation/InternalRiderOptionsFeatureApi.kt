@@ -8,7 +8,6 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import br.com.ccortez.core.FeatureApi
 import br.com.ccortez.core.common.utils.RiderOptionsFeature
-import br.com.ccortez.core.common.utils.RouteMapFeature
 import br.com.ccortez.feature.taxi_travel_options.ui.screen.RequestRideViewModel
 import br.com.ccortez.feature.taxi_travel_options.ui.screen.RiderOptionsScreen
 
@@ -22,7 +21,7 @@ internal object InternalRiderOptionsFeatureApi : FeatureApi {
             route = RiderOptionsFeature.nestedRoute) {
             composable(
                 RiderOptionsFeature.taxiTravelOptionsScreenRoute,
-                deepLinks = listOf(navDeepLink { uriPattern = RouteMapFeature.deepLinkRoute })
+                deepLinks = listOf(navDeepLink { uriPattern = RiderOptionsFeature.deepLinkRoute })
             ) {
                 val viewModel = hiltViewModel<RequestRideViewModel>()
                 val userId = it.arguments?.getString("userId")

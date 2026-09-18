@@ -20,8 +20,8 @@ object TripHistoryFeature {
 
 object RouteMapFeature {
     const val nestedRoute = "route_map_nested_route"
-    const val taxiTravelOptionsScreenRoute = "route_map/{id}"
-    const val deepLinkRoute = "taxi://route_map/{id}"
+    const val taxiTravelOptionsScreenRoute = "route_map/{userId}/{originAddress}/{destinyAddress}"
+    const val deepLinkRoute = "taxi://route_map/{userId}/{originAddress}/{destinyAddress}"
 }
 
 object RiderOptionsFeature {

@@ -7,6 +7,7 @@ import br.com.ccortez.feature.taxi_travel_available_riders.ui.navigation.Availab
 import br.com.ccortez.feature.taxi_travel_available_riders.ui.navigation.TripHistoryApi
 import br.com.ccortez.feature.taxi_travel_options.ui.navigation.TravelRequestFeatureApi
 import br.com.ccortez.feature.taxi_travel_options.ui.navigation.RiderOptionsApi
+import br.com.ccortez.feature.taxi_travel_options.ui.navigation.RouteMapApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,10 +20,14 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun provideNavigationProvider(travelRequestFeatureApi: TravelRequestFeatureApi, availableRidersApi: AvailableRidersApi,
-                                  riderOptionsApi: RiderOptionsApi,
-                                  tripHistoryApi: TripHistoryApi): NavigationProvider {
-        return NavigationProvider(travelRequestFeatureApi, availableRidersApi, riderOptionsApi, tripHistoryApi)
+    fun provideNavigationProvider(
+        travelRequestFeatureApi: TravelRequestFeatureApi,
+        availableRidersApi: AvailableRidersApi,
+        riderOptionsApi: RiderOptionsApi,
+        tripHistoryApi: TripHistoryApi,
+        routeMapApi: RouteMapApi
+    ): NavigationProvider {
+        return NavigationProvider(travelRequestFeatureApi, availableRidersApi, riderOptionsApi, tripHistoryApi, routeMapApi)
     }
 
     @Provides
